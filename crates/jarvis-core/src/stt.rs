@@ -8,7 +8,7 @@ use crate::config::structs::SpeechToTextEngine;
 static STT_TYPE: OnceCell<SpeechToTextEngine> = OnceCell::new();
 
 pub fn init() -> Result<(), ()> {
-    if !STT_TYPE.get().is_none() {
+    if STT_TYPE.get().is_some() {
         return Ok(());
     } // already initialized
 

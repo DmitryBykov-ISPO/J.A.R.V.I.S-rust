@@ -33,7 +33,10 @@ pub fn init() -> Result<(), ()> {
 
             // load wake word files
             for rpw in rustpotter_wake_word_files {
-                rinstance.add_wakeword_from_file(rpw, rpw).unwrap(); // @TODO: Change wakeword key to something else?
+                // @TODO: Change wakeword key to something else?
+                if let Err(e) = rinstance.add_wakeword_from_file(rpw, rpw) {
+                    error!("Failed to load wakeword file '{}': {}", rpw, e);
+                }
             }
 
             // store
@@ -52,7 +55,8 @@ pub fn init() -> Result<(), ()> {
 pub fn data_callback(frame_buffer: &[i16]) -> Option<i32> {
     let mut lock = RUSTPOTTER.get().unwrap().lock();
     let rustpotter = lock.as_mut().unwrap();
-    let detection = rustpotter.process_samples(frame_buffer.to_vec()); // @TODO. Temp crutch. Fix optimization issue, frame_buffer should not be copied to a new vector!
+    // let detection = rustpotter.process_samples(frame_buffer.to_vec()); // @TODO. Temp crutch. Fix optimization issue, frame_buffer should not be copied to a new vector!
+    let detection = rustpotter.process_samples(frame_buffer);
 
     if let Some(detection) = detection {
         if detection.score > config::RUSPOTTER_MIN_SCORE {

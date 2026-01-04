@@ -175,7 +175,7 @@ pub fn start_recording(device_index: i32, frame_length: u32) {
 pub fn stop_recording() {
     // ensure microphone is initialized
     RECORDER.with(|recorder| {
-        if !recorder.get().is_none() && IS_RECORDING.load(Ordering::SeqCst) {
+        if recorder.get().is_some() && IS_RECORDING.load(Ordering::SeqCst) {
             // pause instead of stop
             match recorder.get().unwrap().load().pause() {
                 Err(msg) => {

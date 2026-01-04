@@ -11,7 +11,7 @@ use crate::{config, DB, SOUND_DIR};
 static AUDIO_TYPE: OnceCell<AudioType> = OnceCell::new();
 
 pub fn init() -> Result<(), ()> {
-    if !AUDIO_TYPE.get().is_none() {
+    if AUDIO_TYPE.get().is_some() {
         return Ok(());
     } // already initialized
 
@@ -29,7 +29,7 @@ pub fn init() -> Result<(), ()> {
                 Ok(_) => {
                     info!("Successfully initialized Rodio audio backend.");
                 }
-                Err(msg) => {
+                Err(()) => {
                     error!("Failed to initialize Rodio audio backend.");
 
                     return Err(());

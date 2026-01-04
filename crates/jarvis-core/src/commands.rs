@@ -23,7 +23,13 @@ pub fn parse_commands() -> Result<Vec<AssistantCommand>, String> {
     if let Ok(cpaths) = fs::read_dir(config::COMMANDS_PATH) {
         for cpath in cpaths {
             // validate this command, check if required files exists
-            let _cpath = cpath.unwrap().path();
+            let _cpath = match cpath {
+                Ok(entry) => entry.path(),
+                Err(e) => {
+                    warn!("Failed to read command directory entry: {}", e);
+                    continue;
+                }
+            };
             let cc_file = Path::new(&_cpath).join("command.yaml");
 
             if cc_file.exists() {
@@ -53,7 +59,7 @@ pub fn parse_commands() -> Result<Vec<AssistantCommand>, String> {
             }
         }
 
-        if commands.len() > 0 {
+        if !commands.is_empty() {
             Ok(commands)
         } else {
             error!("No commands were found");
@@ -101,7 +107,7 @@ pub fn fetch_command<'a>(
     }
 
     if let Some((cmd_path, scmd)) = result_scmd {
-        println!("Ratio is: {}", current_max_ratio);
+        debug!("Ratio is: {}", current_max_ratio);
         info!(
             "CMD is: {cmd_path:?}, SCMD is: {scmd:?}, Ratio is: {}",
             current_max_ratio
@@ -118,7 +124,7 @@ pub fn execute_exe(exe: &str, args: &Vec<String>) -> std::io::Result<Child> {
 }
 
 pub fn execute_cli(cmd: &str, args: &Vec<String>) -> std::io::Result<Child> {
-    println!("Spawning cmd as: cmd /C {} {:?}", cmd, args);
+    debug!("Spawning cmd as: cmd /C {} {:?}", cmd, args);
 
     if cfg!(target_os = "windows") {
         Command::new("cmd").arg("/C").arg(cmd).args(args).spawn()

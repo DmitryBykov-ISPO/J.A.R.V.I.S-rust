@@ -17,7 +17,7 @@ static STREAM_HANDLE: OnceCell<OutputStream> = OnceCell::new();
 static SINK: OnceCell<Sink> = OnceCell::new();
 
 pub fn init() -> Result<(), ()> {
-    if !STREAM_HANDLE.get().is_none() {
+    if STREAM_HANDLE.get().is_some() {
         return Ok(());
     } // already initialized
 

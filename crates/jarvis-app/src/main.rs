@@ -75,7 +75,7 @@ fn main() -> Result<(), String> {
 
     // start the app (in the background thread)
     std::thread::spawn(|| {
-        app::start();
+        let _ = app::start();
     });
 
     tray::init_blocking();

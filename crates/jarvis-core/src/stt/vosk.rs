@@ -9,7 +9,7 @@ static MODEL: OnceCell<Model> = OnceCell::new();
 static RECOGNIZER: OnceCell<Mutex<Recognizer>> = OnceCell::new();
 
 pub fn init_vosk() {
-    if !RECOGNIZER.get().is_none() {
+    if RECOGNIZER.get().is_some() {
         return;
     } // already initialized
 
@@ -53,21 +53,14 @@ pub fn recognize(data: &[i16], include_partial: bool) -> Option<String> {
                 }
                 DecodingState::Finalized => {
                     // Result will always be multiple because we called set_max_alternatives
-                    Some(
-                        RECOGNIZER
-                            .get()
-                            .unwrap()
-                            .lock()
-                            .unwrap()
-                            .result()
-                            .multiple()
-                            .unwrap()
-                            .alternatives
-                            .first()
-                            .unwrap()
-                            .text
-                            .into(),
-                    )
+                    RECOGNIZER
+                        .get()
+                        .unwrap()
+                        .lock()
+                        .unwrap()
+                        .result()
+                        .multiple()
+                        .and_then(|m| m.alternatives.first().map(|a| a.text.to_string()))
                 }
                 DecodingState::Failed => None,
             }

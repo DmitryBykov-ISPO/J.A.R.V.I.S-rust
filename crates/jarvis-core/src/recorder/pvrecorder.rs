@@ -6,36 +6,36 @@ static RECORDER: OnceCell<PvRecorder> = OnceCell::new();
 static IS_RECORDING: AtomicBool = AtomicBool::new(false);
 
 pub fn init_microphone(device_index: i32, frame_length: u32) -> bool {
-    match RECORDER.get().is_none() {
-        true => {
-            let pv_recorder = PvRecorderBuilder::new(frame_length as i32)
-                .device_index(device_index)
-                // .frame_length(frame_length as i32)
-                .init();
+    if RECORDER.get().is_some() {
+        return true; // already initialized
+    }
+    
+    // initialize
+    let pv_recorder = PvRecorderBuilder::new(frame_length as i32)
+        .device_index(device_index)
+        // .frame_length(frame_length as i32)
+        .init();
 
-            match pv_recorder {
-                Ok(pv) => {
-                    // store
-                    RECORDER.set(pv);
+    match pv_recorder {
+        Ok(pv) => {
+            // store
+            RECORDER.set(pv);
 
-                    // success
-                    true
-                }
-                Err(msg) => {
-                    error!("Failed to initialize pvrecorder.\nError details: {:?}", msg);
-
-                    // fail
-                    false
-                }
-            }
+            // success
+            true
         }
-        _ => true, // already initialized
+        Err(msg) => {
+            error!("Failed to initialize pvrecorder.\nError details: {:?}", msg);
+
+            // fail
+            false
+        }
     }
 }
 
 pub fn read_microphone(frame_buffer: &mut [i16]) {
     // ensure microphone is initialized
-    if !RECORDER.get().is_none() {
+    if RECORDER.get().is_some() {
         // read to frame buffer
 
         let frame = RECORDER.get().unwrap().read();
@@ -68,7 +68,7 @@ pub fn start_recording(device_index: i32, frame_length: u32) -> Result<(), ()> {
             Ok(())
         }
         Err(msg) => {
-            error!("Failed to start audio recording!");
+            error!("Failed to START audio recording: {}", msg);
 
             // fail
             Err(())
@@ -78,7 +78,7 @@ pub fn start_recording(device_index: i32, frame_length: u32) -> Result<(), ()> {
 
 pub fn stop_recording() -> Result<(), ()> {
     // ensure microphone is initialized & recording is in process
-    if !RECORDER.get().is_none() && IS_RECORDING.load(Ordering::SeqCst) {
+    if RECORDER.get().is_some() && IS_RECORDING.load(Ordering::SeqCst) {
         // stop recording
         match RECORDER.get().unwrap().stop() {
             Ok(_) => {
@@ -91,7 +91,7 @@ pub fn stop_recording() -> Result<(), ()> {
                 return Ok(());
             }
             Err(msg) => {
-                error!("Failed to stop audio recording!");
+                error!("Failed to STOP audio recording: {}", msg);
 
                 // fail
                 return Err(());
@@ -106,7 +106,10 @@ pub fn list_audio_devices() -> Vec<String> {
     let audio_devices = PvRecorderBuilder::default().get_available_devices();
     match audio_devices {
         Ok(audio_devices) => audio_devices,
-        Err(err) => panic!("Failed to get audio devices: {}", err),
+        Err(err) => {
+            error!("Failed to get audio devices: {}", err);
+            Vec::new()
+        },
     }
 }
 

@@ -159,7 +159,7 @@ where
 pub fn read_microphone(frame_buffer: &mut [i16]) {
     // ensure microphone is initialized
     RECORDER.with(|r| {
-        if !r.get().is_none() {
+        if r.get().is_some() {
             let cell = r.get().unwrap().load();
             let mut lock = cell.lock();
             let stream = lock.as_mut().unwrap();
@@ -194,7 +194,7 @@ pub fn start_recording(device_index: i32, frame_length: u32) {
 
 pub fn stop_recording() {
     RECORDER.with(|r| {
-        if !r.get().is_none() && IS_RECORDING.load(Ordering::SeqCst) {
+        if r.get().is_some() && IS_RECORDING.load(Ordering::SeqCst) {
             // stop recording
             let pa = r.get().unwrap().load();
             r.get().unwrap().load().lock().unwrap().stop().expect("Failed to stop audio recording!");

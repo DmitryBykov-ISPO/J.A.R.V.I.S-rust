@@ -19,7 +19,7 @@ static WAKE_WORD_ENGINE: OnceCell<WakeWordEngine> = OnceCell::new();
 static LISTENING: AtomicBool = AtomicBool::new(false);
 
 pub fn init() -> Result<(), ()> {
-    if !WAKE_WORD_ENGINE.get().is_none() {
+    if WAKE_WORD_ENGINE.get().is_some() {
         return Ok(());
     } // already initialized
 
