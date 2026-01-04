@@ -46,6 +46,7 @@
     let voiceVal = ""
     let selectedMicrophone = ""
     let selectedWakeWordEngine = ""
+    let selectedIntentRecognitionEngine = ""
     let apiKeyPicovoice = ""
     let apiKeyOpenai = ""
 
@@ -71,6 +72,7 @@
                 invoke("db_write", { key: "assistant_voice", val: voiceVal }),
                 invoke("db_write", { key: "selected_microphone", val: selectedMicrophone }),
                 invoke("db_write", { key: "selected_wake_word_engine", val: selectedWakeWordEngine }),
+                invoke("db_write", { key: "selected_intent_recognition_engine", val: selectedIntentRecognitionEngine }),
                 invoke("db_write", { key: "api_key__picovoice", val: apiKeyPicovoice }),
                 invoke("db_write", { key: "api_key__openai", val: apiKeyOpenai })
             ])
@@ -106,15 +108,17 @@
             }))
 
             // load settings from db
-            const [mic, wakeWord, pico, openai] = await Promise.all([
+            const [mic, wakeWord, intentReco, pico, openai] = await Promise.all([
                 invoke<string>("db_read", { key: "selected_microphone" }),
                 invoke<string>("db_read", { key: "selected_wake_word_engine" }),
+                invoke<string>("db_read", { key: "selected_intent_recognition_engine" }),
                 invoke<string>("db_read", { key: "api_key__picovoice" }),
                 invoke<string>("db_read", { key: "api_key__openai" })
             ])
 
             selectedMicrophone = mic
             selectedWakeWordEngine = wakeWord
+            selectedIntentRecognitionEngine = intentReco
             apiKeyPicovoice = pico
             apiKeyOpenai = openai
         } catch (err) {
@@ -227,6 +231,18 @@
                 />
             </Alert>
         {/if}
+
+        <Space h="xl" />
+        <NativeSelect
+            data={[
+                { label: "Intent Classifier", value: "IntentClassifier" },
+                { label: "Rasa", value: "Rasa" }
+            ]}
+            label="Распознавание команд (Intent Recognition)"
+            description="Выберите, какая нейросеть будет отвечать за распознавание команд."
+            variant="filled"
+            bind:value={selectedIntentRecognitionEngine}
+        />
 
         <Space h="xl" />
 

@@ -17,6 +17,7 @@ use rustpotter::{
     RustpotterConfig, ScoreMode,
 };
 
+use crate::IntentRecognitionEngine;
 use crate::{APP_CONFIG_DIR, APP_DIRS, APP_LOG_DIR};
 
 #[allow(dead_code)]
@@ -64,6 +65,7 @@ pub fn init_dirs() -> Result<(), String> {
 pub const DEFAULT_AUDIO_TYPE: AudioType = AudioType::Kira;
 pub const DEFAULT_RECORDER_TYPE: RecorderType = RecorderType::PvRecorder;
 pub const DEFAULT_WAKE_WORD_ENGINE: WakeWordEngine = WakeWordEngine::Rustpotter;
+pub const DEFAULT_INTENT_RECOGNITION_ENGINE: IntentRecognitionEngine = IntentRecognitionEngine::IntentClassifier;
 pub const DEFAULT_SPEECH_TO_TEXT_ENGINE: SpeechToTextEngine = SpeechToTextEngine::Vosk;
 
 pub const DEFAULT_VOICE: &str = "jarvis-og";
@@ -129,6 +131,9 @@ pub const DEFAULT_SENSITIVITY: f32 = 1.0;
 pub const VOSK_FETCH_PHRASE: &str = "джарвис";
 pub const VOSK_MODEL_PATH: &str = "vosk/model_small";
 pub const VOSK_MIN_RATIO: f64 = 70.0;
+
+// IRE (intents recognition)
+pub const INTENT_CLASSIFIER_MIN_CONFIDENCE: f64 = 0.5;
 
 // ETC
 pub const CMD_RATIO_THRESHOLD: f64 = 65f64;

@@ -30,3 +30,5 @@ vosk = "0.3"
 rustpotter = { git = "https://github.com/Priler/rustpotter" }
 image = "0.25"
 parking_lot = "0.12.5"
+toml = "0.9.8"
+sha2 = "0.10"

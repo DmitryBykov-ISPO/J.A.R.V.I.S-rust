@@ -12,72 +12,96 @@ use std::process::{Child, Command};
 mod structs;
 pub use structs::*;
 
+use std::collections::HashMap;
+
 use crate::{audio, config};
 
 // @TODO. Allow commands both in yaml and json format.
-pub fn parse_commands() -> Result<Vec<AssistantCommand>, String> {
+pub fn parse_commands() -> Result<Vec<JCommandsList>, String> {
     // collect commands
-    let mut commands: Vec<AssistantCommand> = vec![];
+    let mut commands: Vec<JCommandsList> = Vec::new();
 
-    // read commands directories first
-    if let Ok(cpaths) = fs::read_dir(config::COMMANDS_PATH) {
-        for cpath in cpaths {
-            // validate this command, check if required files exists
-            let _cpath = match cpath {
-                Ok(entry) => entry.path(),
-                Err(e) => {
-                    warn!("Failed to read command directory entry: {}", e);
-                    continue;
-                }
-            };
-            let cc_file = Path::new(&_cpath).join("command.yaml");
+    let cmd_dirs = fs::read_dir(config::COMMANDS_PATH)
+        .map_err(|e| format!("Error reading commands directory: {}", e))?;
 
-            if cc_file.exists() {
-                // try parse config files
-                let cc_reader = std::fs::File::open(&cc_file).unwrap();
-                let cc_yaml: CommandsList;
-
-                // try parse command.yaml
-                match serde_yaml::from_reader::<File, CommandsList>(cc_reader) {
-                    Ok(parse_result) => {
-                        cc_yaml = parse_result;
-                    }
-                    Err(msg) => {
-                        warn!(
-                            "Can't parse {}, skipping ...\nCommand parse error is: {:?}",
-                            &cc_file.display(),
-                            msg
-                        );
-                        continue;
-                    }
-                }
-                // everything seems to be Ok
-                commands.push(AssistantCommand {
-                    path: _cpath,
-                    commands: cc_yaml,
-                });
+    for entry in cmd_dirs {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(e) => {
+                warn!("Failed to read command directory entry: {}", e);
+                continue;
             }
+        };
+        
+        let cmd_path = entry.path();
+        let toml_file = cmd_path.join("command.toml");
+        
+        if !toml_file.exists() {
+            continue;
         }
+        
+        // read and parse TOML
+        let content = match fs::read_to_string(&toml_file) {
+            Ok(c) => c,
+            Err(e) => {
+                warn!("Failed to read {}: {}", toml_file.display(), e);
+                continue;
+            }
+        };
 
-        if !commands.is_empty() {
-            Ok(commands)
-        } else {
-            error!("No commands were found");
-            Err("No commands were found".into())
-        }
+        let file: JCommandsList = match toml::from_str(&content) {
+            Ok(f) => f,
+            Err(e) => {
+                warn!("Failed to parse {}: {}", toml_file.display(), e);
+                continue;
+            }
+        };
+
+        commands.push(JCommandsList {
+            path: cmd_path,
+            commands: file.commands,
+        });
+    }
+
+    if commands.is_empty() {
+        Err("No commands found".into())
     } else {
-        error!("Error reading commands directory");
-        return Err("Error reading commands directory".into());
+        info!("Loaded {} commands", commands.len());
+        Ok(commands)
     }
 }
+
+
+// Commands hash generation for cache invalidation (deterministi c)
+pub fn commands_hash(commands: &Vec<JCommandsList>) -> String {
+    use sha2::{Sha256, Digest};
+    
+    let mut hasher = Sha256::new();
+    
+    // collect all command ids and phrases, sorted
+    let mut all_ids: Vec<_> = commands.iter()
+        .flat_map(|ac| ac.commands.iter().map(|c| (&c.id, &c.phrases)))
+        .collect();
+    all_ids.sort_by_key(|(id, _)| *id);
+    
+    for (id, phrases) in all_ids {
+        hasher.update(id.as_bytes());
+        for phrase in phrases {
+            hasher.update(phrase.as_bytes());
+        }
+    }
+    
+    format!("{:x}", hasher.finalize())
+}
+
 
 // @TODO. NLU or smthng else is required, in order to infer commands with highest accuracy possible.
 pub fn fetch_command<'a>(
     phrase: &str,
-    commands: &'a Vec<AssistantCommand>,
-) -> Option<(&'a PathBuf, &'a Config)> {
+    commands: &'a Vec<JCommandsList>,
+) -> Option<(&'a PathBuf, &'a JCommand)> {
     // result scmd
-    let mut result_scmd: Option<(&PathBuf, &Config)> = None;
+    let mut result_scmd: Option<(&PathBuf, &JCommand)> = None;
     let mut current_max_ratio = config::CMD_RATIO_THRESHOLD;
 
     // convert fetch phrase to sequence
@@ -86,7 +110,7 @@ pub fn fetch_command<'a>(
     // list all the commands
     for cmd in commands {
         // list all subcommands
-        for scmd in &cmd.commands.list {
+        for scmd in &cmd.commands {
             // list all phrases in command
             for cmd_phrase in &scmd.phrases {
                 // convert cmd phrase to sequence
@@ -135,18 +159,17 @@ pub fn execute_cli(cmd: &str, args: &Vec<String>) -> std::io::Result<Child> {
 
 pub fn execute_command(
     cmd_path: &PathBuf,
-    cmd_config: &Config,
+    cmd_config: &JCommand,
     // app_handle: &tauri::AppHandle,
 ) -> Result<bool, String> {
     let sounds_directory = audio::get_sound_directory().unwrap();
 
-    match cmd_config.command.action.as_str() {
+    match cmd_config.action.as_str() {
         "voice" => {
             // VOICE command type
             let random_cmd_sound = format!(
                 "{}.wav",
                 cmd_config
-                    .voice
                     .sounds
                     .choose(&mut rand::thread_rng())
                     .unwrap()
@@ -158,8 +181,8 @@ pub fn execute_command(
         }
         "ahk" => {
             // AutoHotkey command type
-            let exe_path_absolute = Path::new(&cmd_config.command.exe_path);
-            let exe_path_local = Path::new(&cmd_path).join(&cmd_config.command.exe_path);
+            let exe_path_absolute = Path::new(&cmd_config.exe_path);
+            let exe_path_local = Path::new(&cmd_path).join(&cmd_config.exe_path);
 
             if let Ok(_) = execute_exe(
                 if exe_path_absolute.exists() {
@@ -167,12 +190,11 @@ pub fn execute_command(
                 } else {
                     exe_path_local.to_str().unwrap()
                 },
-                &cmd_config.command.exe_args,
+                &cmd_config.exe_args,
             ) {
                 let random_cmd_sound = format!(
                     "{}.wav",
                     cmd_config
-                        .voice
                         .sounds
                         .choose(&mut rand::thread_rng())
                         .unwrap()
@@ -188,14 +210,13 @@ pub fn execute_command(
         }
         "cli" => {
             // CLI command type
-            let cli_cmd = &cmd_config.command.cli_cmd;
+            let cli_cmd = &cmd_config.cli_cmd;
 
-            match execute_cli(cli_cmd, &cmd_config.command.cli_args) {
+            match execute_cli(cli_cmd, &cmd_config.cli_args) {
                 Ok(_) => {
                     let random_cmd_sound = format!(
                         "{}.wav",
                         cmd_config
-                            .voice
                             .sounds
                             .choose(&mut rand::thread_rng())
                             .unwrap()
@@ -216,7 +237,6 @@ pub fn execute_command(
             let random_cmd_sound = format!(
                 "{}.wav",
                 cmd_config
-                    .voice
                     .sounds
                     .choose(&mut rand::thread_rng())
                     .unwrap()
@@ -232,7 +252,6 @@ pub fn execute_command(
             let random_cmd_sound = format!(
                 "{}.wav",
                 cmd_config
-                    .voice
                     .sounds
                     .choose(&mut rand::thread_rng())
                     .unwrap()
@@ -249,7 +268,7 @@ pub fn execute_command(
     }
 }
 
-pub fn list(from: &[AssistantCommand]) -> Vec<String> {
+pub fn list(from: &Vec<JCommandsList>) -> Vec<String> {
     let mut out: Vec<String> = vec![];
 
     for x in from.iter() {

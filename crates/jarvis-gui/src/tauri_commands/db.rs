@@ -9,6 +9,7 @@ pub fn db_read(state: tauri::State<'_, AppState>, key: &str) -> String {
         "selected_microphone" => settings.microphone.to_string(),
         "assistant_voice" => settings.voice.clone(),
         "selected_wake_word_engine" => format!("{:?}", settings.wake_word_engine),
+        "selected_intent_recognition_engine" => format!("{:?}", settings.intent_recognition_engine),
         "speech_to_text_engine" => format!("{:?}", settings.speech_to_text_engine),
         "api_key__picovoice" => settings.api_keys.picovoice.clone(),
         "api_key__openai" => settings.api_keys.openai.clone(),
@@ -38,6 +39,13 @@ pub fn db_write(state: tauri::State<'_, AppState>, key: &str, val: &str) -> bool
                     "rustpotter" => settings.wake_word_engine = jarvis_core::config::structs::WakeWordEngine::Rustpotter,
                     "vosk" => settings.wake_word_engine = jarvis_core::config::structs::WakeWordEngine::Vosk,
                     "porcupine" => settings.wake_word_engine = jarvis_core::config::structs::WakeWordEngine::Porcupine,
+                    _ => return false,
+                }
+            }
+            "selected_intent_recognition_engine" => {
+                match val.to_lowercase().as_str() {
+                    "intentclassifier" => settings.intent_recognition_engine = jarvis_core::config::structs::IntentRecognitionEngine::IntentClassifier,
+                    "rasa" => settings.intent_recognition_engine = jarvis_core::config::structs::IntentRecognitionEngine::Rasa,
                     _ => return false,
                 }
             }

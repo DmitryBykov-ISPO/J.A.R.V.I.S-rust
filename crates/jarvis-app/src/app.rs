@@ -1,6 +1,6 @@
 use std::time::SystemTime;
 
-use jarvis_core::{audio, commands, config, listener, recorder, stt, COMMANDS_LIST};
+use jarvis_core::{audio, commands, config, listener, recorder, stt, COMMANDS_LIST, intent};
 use rand::prelude::*;
 
 pub fn start() -> Result<(), ()> {
@@ -9,6 +9,7 @@ pub fn start() -> Result<(), ()> {
 }
 
 fn main_loop() -> Result<(), ()> {
+    let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
     let mut start: SystemTime;
     let sounds_directory = audio::get_sound_directory().unwrap();
     let frame_length: usize = 512; // default for every wake-word engine
@@ -34,7 +35,7 @@ fn main_loop() -> Result<(), ()> {
 
         // recognize wake-word
         match listener::data_callback(&frame_buffer) {
-            Some(keyword_index) => {
+            Some(_keyword_index) => {
                 // wake-word activated, process further commands
                 // capture current time
                 start = SystemTime::now();
@@ -66,13 +67,18 @@ fn main_loop() -> Result<(), ()> {
                         }
                         recognized_voice = recognized_voice.trim().into();
 
-                        // infer command
-                        if let Some((cmd_path, cmd_config)) = commands::fetch_command(
-                            &recognized_voice,
-                            &COMMANDS_LIST.get().unwrap(),
-                        ) {
-                            // some debug info
-                            info!("Recognized voice (filtered): {}", recognized_voice);
+                        // infer command (try intent recognition first, fallback to levenshtein)
+                        let cmd_result = if let Some((intent_id, confidence)) = 
+                            rt.block_on(intent::classify(&recognized_voice)) 
+                        {
+                            info!("Intent recognized: {} (confidence: {:.2})", intent_id, confidence);
+                            intent::get_command_by_intent(COMMANDS_LIST.get().unwrap(), &intent_id)
+                        } else {
+                            info!("Intent not recognized, trying levenshtein fallback...");
+                            commands::fetch_command(&recognized_voice, COMMANDS_LIST.get().unwrap())
+                        };
+
+                        if let Some((cmd_path, cmd_config)) = cmd_result {
                             info!("Command found: {:?}", cmd_path);
                             info!("Executing!");
 

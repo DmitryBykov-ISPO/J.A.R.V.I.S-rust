@@ -25,7 +25,7 @@ pub fn init() -> Result<(), ()> {
 
     // store current engine
     WAKE_WORD_ENGINE
-        .set(DB.get().unwrap().wake_word_engine)
+        .set(DB.get().unwrap().read().wake_word_engine)
         .unwrap();
 
     // load given wake-word engine

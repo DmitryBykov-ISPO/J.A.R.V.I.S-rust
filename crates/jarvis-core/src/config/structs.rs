@@ -8,6 +8,12 @@ pub enum WakeWordEngine {
     Porcupine,
 }
 
+#[derive(Clone, Copy, Serialize, Deserialize, Debug)]
+pub enum IntentRecognitionEngine {
+    IntentClassifier,
+    Rasa,
+}
+
 impl fmt::Display for WakeWordEngine {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)

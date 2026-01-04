@@ -1,8 +1,9 @@
-use std::path::PathBuf;
+use parking_lot::RwLock;
+use std::sync::Arc;
 
 // include core
 use jarvis_core::{
-    audio, commands, config, db, listener, recorder, stt,
+    audio, commands, config, db, listener, recorder, stt, intent,
     APP_CONFIG_DIR, APP_LOG_DIR, COMMANDS_LIST, DB,
 };
 
@@ -32,7 +33,8 @@ fn main() -> Result<(), String> {
     info!("Log directory is: {}", APP_LOG_DIR.get().unwrap().display());
 
     // initialize database (settings)
-    let _ = DB.set(db::init_settings());
+    DB.set(Arc::new(RwLock::new(db::init_settings())))
+            .expect("DB already initialized");
 
     // initialize tray
     // @TODO. macOS currently not supported for tray functionality,
@@ -58,7 +60,13 @@ fn main() -> Result<(), String> {
 
     // init commands
     info!("Initializing commands.");
-    let cmds = commands::parse_commands().unwrap();
+    let cmds = match commands::parse_commands() {
+        Ok(c) => c,
+        Err(e) => {
+            warn!("Failed to parse commands: {}. Starting with empty command list.", e);
+            Vec::new()
+        }
+    };
     info!("Commands initialized. Count: {}, List: {:?}", cmds.len(), commands::list(&cmds));
     COMMANDS_LIST.set(cmds).unwrap();
 
@@ -72,6 +80,15 @@ fn main() -> Result<(), String> {
     if listener::init().is_err() {
         app::close(1);  // cannot continue without wake-word engine
     }
+
+    // init intent-recognition engine
+    let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+    rt.block_on(async {
+        if intent::init(COMMANDS_LIST.get().unwrap()).await.is_err() {
+            error!("Failed to initialize intent classifier");
+            app::close(1);
+        }
+    });
 
     // start the app (in the background thread)
     std::thread::spawn(|| {

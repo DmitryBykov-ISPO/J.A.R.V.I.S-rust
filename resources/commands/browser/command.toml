@@ -1,0 +1,34 @@
+[[commands]]
+id = "browser_open"
+action = "ahk"
+exe_path = "ahk/Run browser.exe"
+sounds = ["ok1", "ok2", "ok3"]
+phrases = [
+    "открой браузер",
+    "открой хром",
+    "гугл хром",
+]
+
+[[commands]]
+id = "browser_close"
+action = "ahk"
+exe_path = "ahk/Close browser.exe"
+sounds = ["ok1", "ok2", "ok3", "ok4"]
+phrases = [
+    "закрой все браузеры",
+    "закрой браузер",
+    "выключи браузер",
+    "убери браузер",
+]
+
+[[commands]]
+id = "open_google"
+action = "ahk"
+exe_path = "ahk/Run website.exe"
+exe_args = ["http://google.com"]
+sounds = ["ok1", "ok2", "ok3", "ok4"]
+phrases = [
+    "открой гугл",
+    "запусти гугл",
+    "перейди в гугл",
+]
