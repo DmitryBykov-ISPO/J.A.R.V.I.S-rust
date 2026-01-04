@@ -34,3 +34,4 @@ tokio = { version = "1", features = ["sync"], optional = true }
 [features]
 default = ["jarvis_app"]
 jarvis_app = ["vosk", "intent-classifier", "tokio"]
+intent = ["intent-classifier", "tokio"]

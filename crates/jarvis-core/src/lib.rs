@@ -20,7 +20,7 @@ pub mod recorder;
 #[cfg(feature = "jarvis_app")]
 pub mod stt;
 
-#[cfg(feature = "jarvis_app")]
+#[cfg(feature = "intent")]
 pub mod intent;
 
 // shared statics

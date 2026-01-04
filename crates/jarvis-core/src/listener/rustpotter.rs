@@ -23,7 +23,7 @@ pub fn init() -> Result<(), ()> {
             // wake word files list
             // @TODO. Make it configurable via GUI for custom user voice.
             let rustpotter_wake_word_files: [&str; 1] = [
-                "rustpotter/jarvis-default.rpw",
+                "resources/rustpotter/jarvis-default.rpw",
                 // "rustpotter/jarvis-community-1.rpw",
                 // "rustpotter/jarvis-community-2.rpw",
                 // "rustpotter/jarvis-community-3.rpw",
@@ -57,6 +57,8 @@ pub fn data_callback(frame_buffer: &[i16]) -> Option<i32> {
     let rustpotter = lock.as_mut().unwrap();
     // let detection = rustpotter.process_samples(frame_buffer.to_vec()); // @TODO. Temp crutch. Fix optimization issue, frame_buffer should not be copied to a new vector!
     let detection = rustpotter.process_samples(frame_buffer);
+
+    // info!("Ruspotter data callback");
 
     if let Some(detection) = detection {
         if detection.score > config::RUSPOTTER_MIN_SCORE {
