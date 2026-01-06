@@ -23,6 +23,7 @@ rustpotter.workspace = true
 parking_lot.workspace = true
 toml.workspace = true
 sha2.workspace = true
+nnnoiseless = { workspace = true, optional = true }
 
 # pv_recorder = { workspace = true, optional = true }
 vosk = { version = "0.3.1", optional = true }
@@ -33,5 +34,5 @@ tokio = { version = "1", features = ["sync"], optional = true }
 
 [features]
 default = ["jarvis_app"]
-jarvis_app = ["vosk", "intent-classifier", "tokio"]
+jarvis_app = ["vosk", "intent-classifier", "tokio", "nnnoiseless"]
 intent = ["intent-classifier", "tokio"]

@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 // include core
 use jarvis_core::{
-    audio, commands, config, db, listener, recorder, stt, intent,
+    audio, audio_processing, commands, config, db, listener, recorder, stt, intent,
     APP_CONFIG_DIR, APP_LOG_DIR, COMMANDS_LIST, DB,
 };
 
@@ -89,6 +89,12 @@ fn main() -> Result<(), String> {
             app::close(1);
         }
     });
+
+    // init audio processing
+    info!("Initializing audio processing...");
+    if let Err(e) = audio_processing::init() {
+        warn!("Audio processing init failed: {}", e);
+    }
 
     // start the app (in the background thread)
     std::thread::spawn(|| {

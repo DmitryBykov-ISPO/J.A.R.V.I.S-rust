@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::config::structs::SpeechToTextEngine;
 use crate::config::structs::WakeWordEngine;
 use crate::config::structs::IntentRecognitionEngine;
+use crate::config::structs::NoiseSuppressionBackend;
+use crate::config::structs::VadBackend;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Settings {
@@ -13,8 +15,12 @@ pub struct Settings {
     pub wake_word_engine: WakeWordEngine,
     pub intent_recognition_engine: IntentRecognitionEngine,
     pub speech_to_text_engine: SpeechToTextEngine,
-
     pub vosk_model: String,
+
+    // audio processing
+    pub noise_suppression: NoiseSuppressionBackend,
+    pub vad: VadBackend,
+    pub gain_normalizer: bool,
 
     pub api_keys: ApiKeys,
 }
@@ -28,8 +34,12 @@ impl Default for Settings {
             wake_word_engine: config::DEFAULT_WAKE_WORD_ENGINE,
             intent_recognition_engine: config::DEFAULT_INTENT_RECOGNITION_ENGINE,
             speech_to_text_engine: config::DEFAULT_SPEECH_TO_TEXT_ENGINE,
-
             vosk_model: String::from(""), // auto detect first available
+
+            // audio processing defaults
+            noise_suppression: config::DEFAULT_NOISE_SUPPRESSION,
+            vad: config::DEFAULT_VAD,
+            gain_normalizer: config::DEFAULT_GAIN_NORMALIZER,
 
             api_keys: ApiKeys {
                 picovoice: String::from(""),

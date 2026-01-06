@@ -3,17 +3,24 @@
     import { invoke } from "@tauri-apps/api/core"
     import { capitalizeFirstLetter } from "@/functions"
 
+    import {
+        Text,
+    } from "@svelteuidev/core"
+
+    let jarvisStats = { running: false, ram_mb: 0, cpu_usage: 0 }
+
     let microphoneLabel = ""
     let wakeWordEngine = ""
     let sttEngine = "Vosk"
-    let ramUsage = "-"
+    // let ramUsage = "-"
 
-    let interval: number | null = null
+    let statsUpdateInterval: number | null = null
 
-    async function updateRamUsage() {
+    async function updateStats() {
         try {
-            const usage = await invoke<number>("get_current_ram_usage")
-            ramUsage = usage.toFixed(2)
+            jarvisStats = await invoke<{running: boolean, ram_mb: number, cpu_usage: number}>("get_jarvis_app_stats")
+            //const usage = await invoke<number>("get_current_ram_usage")
+            //ramUsage = usage.toFixed(2)
         } catch (err) {
             console.error("failed to get ram usage:", err)
         }
@@ -21,7 +28,8 @@
 
     onMount(async () => {
         // start polling ram usage
-        interval = setInterval(updateRamUsage, 1000) as unknown as number
+        updateStats()
+        statsUpdateInterval = setInterval(updateStats, 5000) as unknown as number
 
         try {
             // load microphone info
@@ -37,8 +45,8 @@
     })
 
     onDestroy(() => {
-        if (interval) {
-            clearInterval(interval)
+        if (statsUpdateInterval) {
+            clearInterval(statsUpdateInterval)
         }
     })
 </script>
@@ -64,7 +72,12 @@
         <div class="pulse"><div class="wave"></div></div>
         <div class="info">
             <span class="num">Ресурсы</span>
-            <small>RAM {ramUsage}mb</small>
+            {#if jarvisStats.running}
+                <small>RAM: {jarvisStats.ram_mb} MB</small>
+                <!--<Text>CPU: {jarvisStats.cpu_usage.toFixed(1)}%</Text>-->
+            {:else}
+                <Text color="gray">-</Text>
+            {/if}
         </div>
     </div>
 </div>

@@ -16,6 +16,7 @@ tauri-plugin-fs = "2"
 peak_alloc = "0.3.0"
 systemstat = "0.2"
 lazy_static = "1.4"
+sysinfo.workspace = true
 
 once_cell.workspace = true
 log.workspace = true

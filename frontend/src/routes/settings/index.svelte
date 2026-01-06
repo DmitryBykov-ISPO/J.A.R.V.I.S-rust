@@ -4,7 +4,7 @@
     import { goto } from "@roxi/routify"
     import { setTimeout } from "worker-timers"
 
-    import { showInExplorer, stopListening, startListening } from "@/functions"
+    import { showInExplorer } from "@/functions"
     import { appInfo, assistantVoice } from "@/stores"
 
     import HDivider from "@/components/elements/HDivider.svelte"
@@ -19,7 +19,8 @@
         Alert,
         Input,
         InputWrapper,
-        NativeSelect
+        NativeSelect,
+        Switch
     } from "@svelteuidev/core"
 
     import {
@@ -43,12 +44,15 @@
     let settingsSaved = false
     let saveButtonDisabled = false
 
-    // form values
+    // form values (state vars)
     let voiceVal = ""
     let selectedMicrophone = ""
     let selectedWakeWordEngine = ""
     let selectedIntentRecognitionEngine = ""
     let selectedVoskModel = ""
+    let selectedNoiseSuppression = ""
+    let selectedVad = ""
+    let gainNormalizerEnabled = false
     let apiKeyPicovoice = ""
     let apiKeyOpenai = ""
 
@@ -76,6 +80,11 @@
                 invoke("db_write", { key: "selected_wake_word_engine", val: selectedWakeWordEngine }),
                 invoke("db_write", { key: "selected_intent_recognition_engine", val: selectedIntentRecognitionEngine }),
                 invoke("db_write", { key: "selected_vosk_model", val: selectedVoskModel }),
+
+                invoke("db_write", { key: "noise_suppression", val: selectedNoiseSuppression }),
+                invoke("db_write", { key: "vad", val: selectedVad }),
+                invoke("db_write", { key: "gain_normalizer", val: gainNormalizerEnabled.toString() }),
+
                 invoke("db_write", { key: "api_key__picovoice", val: apiKeyPicovoice }),
                 invoke("db_write", { key: "api_key__openai", val: apiKeyOpenai })
             ])
@@ -90,7 +99,7 @@
             }, 5000)
 
             // restart listening with new settings
-            stopListening(() => startListening())
+            // stopListening(() => startListening())
         } catch (err) {
             console.error("failed to save settings:", err)
         }
@@ -105,10 +114,13 @@
         try {
             // load microphones
             const mics = await invoke<string[]>("pv_get_audio_devices")
-            availableMicrophones = mics.map((name, idx) => ({
-                label: name,
-                value: String(idx)
-            }))
+            availableMicrophones = [
+                { label: "По умолчанию (Система)", value: "-1" },  // system default
+                ...mics.map((name, idx) => ({
+                    label: name,
+                    value: String(idx)
+                }))
+            ]
 
             // load vosk models
             const voskModels = await invoke<{ name: string; language: string; size: string }[]>("list_vosk_models")
@@ -118,11 +130,18 @@
             }))
 
             // load settings from db
-            const [mic, wakeWord, intentReco, voskModel, pico, openai] = await Promise.all([
+            const [mic, wakeWord, intentReco, voskModel,
+                   noiseSuppression, vad, gainNormalizer,
+                   pico, openai] = await Promise.all([
                 invoke<string>("db_read", { key: "selected_microphone" }),
                 invoke<string>("db_read", { key: "selected_wake_word_engine" }),
                 invoke<string>("db_read", { key: "selected_intent_recognition_engine" }),
                 invoke<string>("db_read", { key: "selected_vosk_model" }),
+
+                invoke<string>("db_read", { key: "noise_suppression" }),
+                invoke<string>("db_read", { key: "vad" }),
+                invoke<string>("db_read", { key: "gain_normalizer" }),
+
                 invoke<string>("db_read", { key: "api_key__picovoice" }),
                 invoke<string>("db_read", { key: "api_key__openai" })
             ])
@@ -131,6 +150,9 @@
             selectedWakeWordEngine = wakeWord
             selectedIntentRecognitionEngine = intentReco
             selectedVoskModel = voskModel
+            selectedNoiseSuppression = noiseSuppression
+            selectedVad = vad
+            gainNormalizerEnabled = gainNormalizer === "true"
             apiKeyPicovoice = pico
             apiKeyOpenai = openai
         } catch (err) {
@@ -179,7 +201,9 @@
         <Space h="sm" />
         <NativeSelect
             data={[
-                { label: "Jarvis ремейк (от Хауди)", value: "jarvis-remake" },
+                { label: "Jarvis New (ремастер)", value: "jarvis-remaster" },
+                { label: "Рик из «Рик и Морти»", value: "rick-morty" },
+                { label: "Jarvis (от Хауди)", value: "jarvis-howdy" },
                 { label: "Jarvis OG (из фильмов)", value: "jarvis-og" }
             ]}
             label="Голос ассистента"
@@ -278,6 +302,46 @@
             variant="filled"
             bind:value={selectedIntentRecognitionEngine}
         />
+
+        <Space h="xl" />
+
+        <NativeSelect
+            data={[
+                { label: "Отключено", value: "None" },
+                { label: "Nnnoiseless", value: "Nnnoiseless" }
+            ]}
+            label="Шумоподавление"
+            description="Уменьшает фоновый шум. Может ухудшить распознавание в некоторых случаях."
+            variant="filled"
+            bind:value={selectedNoiseSuppression}
+        />
+
+        <Space h="md" />
+
+        <NativeSelect
+            data={[
+                { label: "Отключено", value: "None" },
+                { label: "Energy (простой)", value: "Energy" },
+                { label: "Nnnoiseless (нейросеть)", value: "Nnnoiseless" }
+            ]}
+            label="Определение голосой активности (VAD)"
+            description="Пропускает тишину, экономит ресурсы CPU."
+            variant="filled"
+            bind:value={selectedVad}
+        />
+
+        <Space h="md" />
+
+        <InputWrapper label="Нормализация громкости">
+            <Text size="sm" color="gray">
+                Автоматически регулирует уровень громкости.
+            </Text>
+            <Space h="xs" />
+            <Switch
+                label={gainNormalizerEnabled ? "Включено" : "Выключено"}
+                bind:checked={gainNormalizerEnabled}
+            />
+        </InputWrapper>
 
         <Space h="xl" />
 

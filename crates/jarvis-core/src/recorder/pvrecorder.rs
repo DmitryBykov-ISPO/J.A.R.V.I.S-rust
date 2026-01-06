@@ -114,6 +114,10 @@ pub fn list_audio_devices() -> Vec<String> {
 }
 
 pub fn get_audio_device_name(idx: i32) -> String {
+    if idx == -1 {
+        return String::from("System Default");
+    }
+
     let audio_devices = list_audio_devices();
     let mut first_device: String = String::new();
 

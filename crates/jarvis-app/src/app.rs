@@ -1,6 +1,6 @@
 use std::time::SystemTime;
 
-use jarvis_core::{audio, commands, config, listener, recorder, stt, COMMANDS_LIST, intent};
+use jarvis_core::{audio, audio_processing, commands, config, listener, recorder, stt, COMMANDS_LIST, intent};
 use rand::prelude::*;
 
 pub fn start() -> Result<(), ()> {
@@ -14,6 +14,7 @@ fn main_loop() -> Result<(), ()> {
     let sounds_directory = audio::get_sound_directory().unwrap();
     let frame_length: usize = 512; // default for every wake-word engine
     let mut frame_buffer: Vec<i16> = vec![0; frame_length];
+    let mut silence_frames: u32 = 0;
 
     // play some run phrase
     // @TODO. Different sounds? Or better make it via commands or upcoming events system.
@@ -33,16 +34,26 @@ fn main_loop() -> Result<(), ()> {
         // read from microphone
         recorder::read_microphone(&mut frame_buffer);
 
+        // process audio (gain -> noise suppression -> VAD)
+        let processed = audio_processing::process(&frame_buffer);
+
+        // skip if no voice detected (vad)
+        if !processed.is_voice {
+            continue 'wake_word;
+        }
+
         // recognize wake-word
         match listener::data_callback(&frame_buffer) {
             Some(_keyword_index) => {
-                // reset speech recognizer
+                // reset some things
                 stt::reset_wake_recognizer();
                 stt::reset_speech_recognizer();
+                audio_processing::reset();
 
                 // wake-word activated, process further commands
                 // capture current time
                 start = SystemTime::now();
+                silence_frames = 0;
 
                 // play some greet phrase
                 // @TODO. Make it via commands or upcoming events system.
@@ -57,6 +68,20 @@ fn main_loop() -> Result<(), ()> {
                 'voice_recognition: loop {
                     // read from microphone
                     recorder::read_microphone(&mut frame_buffer);
+
+                    // process first
+                    let processed = audio_processing::process(&frame_buffer);
+
+                    // detect silence, return to wake-word if silence
+                    if processed.is_voice {
+                        silence_frames = 0;
+                    } else {
+                        silence_frames += 1;
+                        if silence_frames > config::VAD_SILENCE_FRAMES * 2 {
+                            info!("Long silence detected, returning to wake word mode.");
+                            break 'voice_recognition;
+                        }
+                    }
 
                     // stt part (without partials)
                     if let Some(mut recognized_voice) = stt::recognize(&frame_buffer, false) {
@@ -81,6 +106,7 @@ fn main_loop() -> Result<(), ()> {
                             
                             // reset timer and continue listening
                             start = SystemTime::now();
+                            silence_frames = 0;
                             stt::reset_speech_recognizer();
                             continue 'voice_recognition;
                         }
@@ -149,8 +175,9 @@ fn main_loop() -> Result<(), ()> {
                         _ => (),
                     }
 
-                    // reset wake recognizer
+                    // reset things
                     stt::reset_wake_recognizer();
+                    audio_processing::reset();
                 }
             }
             None => (),

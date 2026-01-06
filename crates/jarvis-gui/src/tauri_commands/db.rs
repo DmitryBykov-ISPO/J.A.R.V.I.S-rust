@@ -12,6 +12,9 @@ pub fn db_read(state: tauri::State<'_, AppState>, key: &str) -> String {
         "selected_intent_recognition_engine" => format!("{:?}", settings.intent_recognition_engine),
         "selected_vosk_model" => settings.vosk_model.clone(),
         "speech_to_text_engine" => format!("{:?}", settings.speech_to_text_engine),
+        "noise_suppression" => format!("{:?}", settings.noise_suppression),
+        "vad" => format!("{:?}", settings.vad),
+        "gain_normalizer" => settings.gain_normalizer.to_string(),
         "api_key__picovoice" => settings.api_keys.picovoice.clone(),
         "api_key__openai" => settings.api_keys.openai.clone(),
         _ => String::new(),
@@ -52,6 +55,28 @@ pub fn db_write(state: tauri::State<'_, AppState>, key: &str, val: &str) -> bool
             }
             "selected_vosk_model" => {
                 settings.vosk_model = val.to_string();
+            }
+            "noise_suppression" => {
+                match val.to_lowercase().as_str() {
+                    "none" => settings.noise_suppression = jarvis_core::config::structs::NoiseSuppressionBackend::None,
+                    "nnnoiseless" => settings.noise_suppression = jarvis_core::config::structs::NoiseSuppressionBackend::Nnnoiseless,
+                    _ => return false,
+                }
+            }
+            "vad" => {
+                match val.to_lowercase().as_str() {
+                    "none" => settings.vad = jarvis_core::config::structs::VadBackend::None,
+                    "energy" => settings.vad = jarvis_core::config::structs::VadBackend::Energy,
+                    "nnnoiseless" => settings.vad = jarvis_core::config::structs::VadBackend::Nnnoiseless,
+                    _ => return false,
+                }
+            }
+            "gain_normalizer" => {
+                match val.to_lowercase().as_str() {
+                    "true" => settings.gain_normalizer = true,
+                    "false" => settings.gain_normalizer = false,
+                    _ => return false,
+                }
             }
             "api_key__picovoice" => {
                 settings.api_keys.picovoice = val.to_string();

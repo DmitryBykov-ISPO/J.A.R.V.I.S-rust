@@ -18,6 +18,8 @@ use rustpotter::{
 };
 
 use crate::IntentRecognitionEngine;
+use crate::config::structs::NoiseSuppressionBackend;
+use crate::config::structs::VadBackend;
 use crate::{APP_CONFIG_DIR, APP_DIRS, APP_LOG_DIR};
 
 #[allow(dead_code)]
@@ -106,7 +108,11 @@ pub const RUSTPOTTER_DEFAULT_CONFIG: Lazy<RustpotterConfig> = Lazy::new(|| {
         },
         filters: FiltersConfig {
             gain_normalizer: GainNormalizationConfig {
-                enabled: true,
+                // enabled: true,
+                // gain_ref: None,
+                // min_gain: 0.7,
+                // max_gain: 1.0,
+                enabled: false, // disable, now we have separate gain normalizer implementation
                 gain_ref: None,
                 min_gain: 0.7,
                 max_gain: 1.0,
@@ -145,6 +151,26 @@ pub const VOSK_SPEECH_PARTIAL_WORDS: bool = false;
 
 // IRE (intents recognition)
 pub const INTENT_CLASSIFIER_MIN_CONFIDENCE: f64 = 0.75;
+
+
+// AUDIO PROCESSING DEFAULTS
+pub const DEFAULT_NOISE_SUPPRESSION: NoiseSuppressionBackend = NoiseSuppressionBackend::None;
+pub const DEFAULT_VAD: VadBackend = VadBackend::Energy;
+pub const DEFAULT_GAIN_NORMALIZER: bool = false;
+
+// VAD settings
+pub const VAD_ENERGY_THRESHOLD: f32 = 500.0;  // RMS threshold for energy-based VAD
+pub const VAD_NNNOISELESS_THRESHOLD: f32 = 0.5;  // probability threshold for nnnoiseless
+pub const VAD_SILENCE_FRAMES: u32 = 15;  // frames of silence before speech end (~480ms)
+
+// gain normalizer settings
+pub const GAIN_TARGET_RMS: f32 = 3000.0;  // target RMS level
+pub const GAIN_MIN: f32 = 0.5;  // minimum gain multiplier
+pub const GAIN_MAX: f32 = 3.0;  // maximum gain multiplier
+
+// nnnoiseless frame size (fixed by library)
+pub const NNNOISELESS_FRAME_SIZE: usize = 480;
+
 
 // ETC
 pub const CMD_RATIO_THRESHOLD: f64 = 65f64;
