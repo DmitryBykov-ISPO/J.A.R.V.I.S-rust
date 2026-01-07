@@ -7,7 +7,7 @@
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
     "devUrl": "http://localhost:1420",
-    "frontendDist": "../../frontend/dist"
+    "frontendDist": "../../frontend/dist/client"
   },
   "app": {
     "withGlobalTauri": false,
@@ -35,11 +35,11 @@
     ],
     "targets": "all",
     "resources": {
-      "../../resources/commands": "commands",
-      "../../resources/sound": "sound",
-      "../../resources/rustpotter": "rustpotter",
-      "../../resources/vosk": "vosk",
-      "../../resources/keywords": "keywords"
+      "../../resources/commands": "resources/commands",
+      "../../resources/sound": "resources/sound",
+      "../../resources/rustpotter": "resources/rustpotter",
+      "../../resources/vosk": "resources/vosk",
+      "../../resources/keywords": "resources/keywords"
     }
   }
 }

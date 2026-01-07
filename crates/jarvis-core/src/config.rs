@@ -70,7 +70,9 @@ pub const DEFAULT_WAKE_WORD_ENGINE: WakeWordEngine = WakeWordEngine::Vosk;
 pub const DEFAULT_INTENT_RECOGNITION_ENGINE: IntentRecognitionEngine = IntentRecognitionEngine::IntentClassifier;
 pub const DEFAULT_SPEECH_TO_TEXT_ENGINE: SpeechToTextEngine = SpeechToTextEngine::Vosk;
 
-pub const DEFAULT_VOICE: &str = "jarvis-og";
+pub const DEFAULT_VOICE: &str = "jarvis-remaster";
+pub const SOUND_PATH: &str = "resources/sound"; // extended from SOUND_DIR (resources/sound)
+pub const VOICES_PATH: &str = "voices"; // extended from SOUND_PATH (resources/sound)
 
 pub const BUNDLE_IDENTIFIER: &str = "com.priler.jarvis";
 pub const DB_FILE_NAME: &str = "app.db";
@@ -81,7 +83,7 @@ pub const REPOSITORY_LINK: Option<&str> = option_env!("CARGO_PKG_REPOSITORY");
 pub const TG_OFFICIAL_LINK: Option<&str> = Some("https://t.me/howdyho_official");
 pub const FEEDBACK_LINK: Option<&str> = Some("https://t.me/jarvis_feedback_bot");
 pub const SUPPORT_BOOSTY_LINK: Option<&str> = Some("https://boosty.to/howdyho");
-pub const SUPPORT_PATREON_LINK: Option<&str> = Some("https://www.patreon.com/user?u=22843414");
+pub const SUPPORT_PATREON_LINK: Option<&str> = Some("https://www.patreon.com/c/priler");
 
 /*
    Tray.

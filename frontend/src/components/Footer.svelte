@@ -46,13 +46,13 @@
     </p>
     <p class="links last">
         {#if $currentLanguage === "ru"}
-        {t('footer-support')} <a href={tgLink} target="_blank" class="telegram-link">
+        {t('footer-support')} <a href={boostyLink} target="_blank" class="telegram-link">
             <img src="/media/icons/boosty.webp" alt="Boosty" width="18px" />
             <span>Boosty</span>
         </a>.
         {/if}
         {#if $currentLanguage === "ua" || $currentLanguage === "en"}
-        {t('footer-support')} <a href={tgLink} target="_blank" class="telegram-link">
+        {t('footer-support')} <a href={patreonLink} target="_blank" class="telegram-link">
             <img src="/media/icons/patreon.png" alt="Patreon" width="18px" />
             <span>Patreon</span>
         </a>.

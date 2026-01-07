@@ -1,6 +1,7 @@
+use crate::APP_DIR;
 use rand::prelude::*;
 use seqdiff::ratio;
-use serde_yaml;
+// use serde_yaml;
 use std::path::Path;
 use std::{fs, fs::File};
 
@@ -14,15 +15,16 @@ pub use structs::*;
 
 use std::collections::HashMap;
 
-use crate::{audio, config};
+use crate::{config};
 
 // @TODO. Allow commands both in yaml and json format.
 pub fn parse_commands() -> Result<Vec<JCommandsList>, String> {
     // collect commands
     let mut commands: Vec<JCommandsList> = Vec::new();
 
-    let cmd_dirs = fs::read_dir(config::COMMANDS_PATH)
-        .map_err(|e| format!("Error reading commands directory: {}", e))?;
+    let commands_path = APP_DIR.join(config::COMMANDS_PATH);
+    let cmd_dirs = fs::read_dir(&commands_path)
+        .map_err(|e| format!("Error reading commands directory {:?}: {}", commands_path, e))?;
 
     for entry in cmd_dirs {
         let entry = match entry {
@@ -204,7 +206,7 @@ pub fn execute_command(
     cmd_config: &JCommand,
     // app_handle: &tauri::AppHandle,
 ) -> Result<bool, String> {
-    let sounds_directory = audio::get_sound_directory().unwrap();
+    // let sounds_directory = audio::get_sound_directory().unwrap();
 
     match cmd_config.action.as_str() {
         "voice" => {
@@ -217,7 +219,7 @@ pub fn execute_command(
                     .unwrap()
             );
             // events::play(random_cmd_sound, app_handle);
-            audio::play_sound(&sounds_directory.join(random_cmd_sound));
+            // audio::play_sound(&sounds_directory.join(random_cmd_sound));
 
             Ok(true)
         }
@@ -242,7 +244,7 @@ pub fn execute_command(
                         .unwrap()
                 );
                 // events::play(random_cmd_sound, app_handle);
-                audio::play_sound(&sounds_directory.join(random_cmd_sound));
+                // audio::play_sound(&sounds_directory.join(random_cmd_sound));
 
                 Ok(true)
             } else {
@@ -264,7 +266,7 @@ pub fn execute_command(
                             .unwrap()
                     );
                     // events::play(random_cmd_sound, app_handle);
-                    audio::play_sound(&sounds_directory.join(random_cmd_sound));
+                    // audio::play_sound(&sounds_directory.join(random_cmd_sound));
 
                     Ok(true)
                 }
@@ -284,7 +286,7 @@ pub fn execute_command(
                     .unwrap()
             );
             // events::play(random_cmd_sound, app_handle);
-            audio::play_sound(&sounds_directory.join(random_cmd_sound));
+            // audio::play_sound(&sounds_directory.join(random_cmd_sound));
 
             std::thread::sleep(Duration::from_secs(2));
             std::process::exit(0);
@@ -299,7 +301,7 @@ pub fn execute_command(
                     .unwrap()
             );
             // events::play(random_cmd_sound, app_handle);
-            audio::play_sound(&sounds_directory.join(random_cmd_sound));
+            // audio::play_sound(&sounds_directory.join(random_cmd_sound));
 
             Ok(false)
         }

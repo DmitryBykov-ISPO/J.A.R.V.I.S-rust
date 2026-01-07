@@ -54,7 +54,9 @@ settings-microphone = Мікрофон
 settings-microphone-desc = Його буде слухати асистент.
 settings-mic-default = За замовчуванням (Система)
 settings-voice = Голос асистента
-settings-voice-desc = Не всі команди працюють з усіма звуковими пакетами.
+settings-voice-desc =
+    Не всі команди працюють з усіма звуковими пакетами.
+    Натисніть, щоб прослухати як звучить голос.
 settings-wake-word-engine = Рушій активації
 settings-wake-word-desc = Виберіть нейромережу для розпізнавання активаційної фрази.
 settings-stt-engine = Розпізнавання мовлення
@@ -117,3 +119,9 @@ notification-saved = Налаштування збережено!
 notification-error = Помилка
 notification-assistant-started = Асистент запущено
 notification-assistant-stopped = Асистент зупинено
+
+# ETC
+
+search-error-not-running = Асистент не запущено
+search-error-failed = Не вдалося виконати команду
+settings-no-voices = Голоси не знайдено

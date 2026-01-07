@@ -7,6 +7,8 @@ use std::path::PathBuf;
 #[macro_use]
 extern crate log;
 
+pub mod time;
+
 pub mod audio;
 pub mod commands;
 pub mod config;
@@ -32,6 +34,8 @@ pub mod audio_processing;
 #[cfg(feature = "jarvis_app")]
 pub mod ipc;
 
+pub mod voices;
+
 // shared statics
 // pub static APP_DIR: Lazy<PathBuf> = Lazy::new(|| std::env::current_dir().unwrap());
 pub static APP_DIR: Lazy<PathBuf> = Lazy::new(|| {
@@ -40,7 +44,7 @@ pub static APP_DIR: Lazy<PathBuf> = Lazy::new(|| {
         .and_then(|p| p.parent().map(|p| p.to_path_buf()))
         .unwrap_or_else(|| std::env::current_dir().unwrap())
 });
-pub static SOUND_DIR: Lazy<PathBuf> = Lazy::new(|| APP_DIR.clone().join("resources/sound"));
+pub static SOUND_DIR: Lazy<PathBuf> = Lazy::new(|| APP_DIR.clone().join(config::SOUND_PATH));
 pub static APP_DIRS: OnceCell<AppDirs> = OnceCell::new();
 pub static APP_CONFIG_DIR: OnceCell<PathBuf> = OnceCell::new();
 pub static APP_LOG_DIR: OnceCell<PathBuf> = OnceCell::new();

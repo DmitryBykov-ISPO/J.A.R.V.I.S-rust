@@ -1,20 +1,12 @@
 <script lang="ts">
     import { jarvisState } from "@/stores"
 
-    $: stateClass = getStateClass($jarvisState)
-
-    function getStateClass(state: string): string {
-        switch (state) {
-            case "listening":
-            case "processing":
-                return "active"
-            case "idle":
-                return "idle"
-            case "disconnected":
-            default:
-                return "disconnected"
-        }
-    }
+    $: stateClass = {
+        'disconnected': 'disconnected',
+        'idle': 'idle',
+        'listening': 'active',
+        'processing': 'active'
+    }[$jarvisState] || 'disconnected'
 </script>
 
 <div id="arc-reactor" class="reactor-container {stateClass} arc-white">

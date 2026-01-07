@@ -21,13 +21,17 @@
 
     let processRunning = false
     let launching = false
+    let wasRunning = false  // track previous state
 
     isJarvisRunning.subscribe((value) => {
         processRunning = value
         if (value) {
             enableIpc()
-        } else {
+            wasRunning = true
+        } else if (wasRunning) {
+            // only disable if it was running before
             disableIpc()
+            wasRunning = false
         }
     })
 

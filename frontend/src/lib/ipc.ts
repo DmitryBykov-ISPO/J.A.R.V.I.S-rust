@@ -1,4 +1,6 @@
 import { writable, get } from "svelte/store"
+import { invoke } from "@tauri-apps/api/core"
+import { getCurrentWindow } from "@tauri-apps/api/window"
 
 // ### IPC STORES ###
 
@@ -30,57 +32,32 @@ export function disableIpc() {
     disconnectIpc()
 }
 
-export function connectIpc() {
-    if (!enabled) {
-        console.log("IPC: Not enabled, skipping connection")
-        return
+export function connectIpc(port: number = 9712) {
+    if (ws?.readyState === WebSocket.OPEN) return
+
+    ws = new WebSocket(`ws://127.0.0.1:${port}`)
+
+    ws.onopen = () => {
+        ipcConnected.set(true)
+        jarvisState.set("idle")
+        console.log("[IPC] connected")
     }
 
-    if (ws?.readyState === WebSocket.OPEN || ws?.readyState === WebSocket.CONNECTING) {
-        return
+    ws.onclose = () => {
+        ipcConnected.set(false)
+        console.log("[IPC] disconnected")
     }
 
-    manualDisconnect = false
+    ws.onerror = (err) => {
+        console.error("[IPC] error:", err)
+    }
 
-    console.log("IPC: Connecting to", IPC_URL)
-
-    try {
-        ws = new WebSocket(IPC_URL)
-
-        ws.onopen = () => {
-            console.log("IPC: Connected")
-            ipcConnected.set(true)
-            jarvisState.set("idle")
-            sendAction("ping")
-        }
-
-        ws.onclose = (event) => {
-            console.log("IPC: Disconnected", event.code)
-            ipcConnected.set(false)
-            jarvisState.set("disconnected")
-            ws = null
-
-            if (!manualDisconnect && enabled) {
-                scheduleReconnect()
-            }
-        }
-
-        ws.onerror = () => {
-            // error is handled in onclose, just suppress console spam
-        }
-
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data)
-                handleEvent(data)
-            } catch (e) {
-                console.error("IPC: Failed to parse message:", event.data, e)
-            }
-        }
-    } catch (e) {
-        // suppress errors when server isn't running
-        if (enabled) {
-            scheduleReconnect()
+    ws.onmessage = (event) => {
+        try {
+            const msg = JSON.parse(event.data)
+            handleEvent(msg)
+        } catch (e) {
+            console.error("[IPC] failed to parse message:", e)
         }
     }
 }
@@ -151,6 +128,11 @@ function handleEvent(data: any) {
         case "pong":
             // connection verified
             break
+
+        case "reveal_window":
+            // bring window to foreground
+            revealWindow()
+            break
     }
 }
 
@@ -171,4 +153,35 @@ export function stopJarvisApp() {
 
 export function reloadCommands() {
     return sendAction("reload_commands")
+}
+
+export function sendIpcMessage(message: object): Promise<void> {
+    return new Promise((resolve, reject) => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            reject(new Error("IPC not connected"))
+            return
+        }
+
+        try {
+            ws.send(JSON.stringify(message))
+            resolve()
+        } catch (err) {
+            reject(err)
+        }
+    })
+}
+
+export function sendTextCommand(text: string): boolean {
+    return sendAction("text_command", { text })
+}
+
+async function revealWindow() {
+    try {
+        const window = getCurrentWindow()
+        await window.show()
+        await window.unminimize()
+        await window.setFocus()
+    } catch (e) {
+        console.error("[IPC] Failed to reveal window:", e)
+    }
 }

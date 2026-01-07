@@ -30,3 +30,11 @@ pub use stt::*;
 // import i18n commands
 mod i18n;
 pub use i18n::*;
+
+// import commands commands xD
+mod commands;
+pub use commands::*;
+
+// import voices commands
+mod voices;
+pub use voices::*;

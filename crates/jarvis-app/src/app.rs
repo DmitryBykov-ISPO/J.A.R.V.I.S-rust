@@ -1,26 +1,27 @@
+use std::sync::mpsc::Receiver;
 use std::time::SystemTime;
 
-use jarvis_core::{audio, audio_processing, commands, config,  listener, recorder, stt, COMMANDS_LIST, intent, ipc::{self, IpcEvent}};
+use jarvis_core::{audio, audio_processing, commands, config,  listener, recorder, stt, COMMANDS_LIST, intent, voices, ipc::{self, IpcEvent}};
 use rand::prelude::*;
 
 use crate::should_stop;
 
-pub fn start() -> Result<(), ()> {
+pub fn start(text_cmd_rx: Receiver<String>) -> Result<(), ()> {
     // start the loop
-    main_loop()
+    main_loop(text_cmd_rx)
 }
 
-fn main_loop() -> Result<(), ()> {
+fn main_loop(text_cmd_rx: Receiver<String>) -> Result<(), ()> {
     let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
     let mut start: SystemTime;
-    let sounds_directory = audio::get_sound_directory().unwrap();
+    // let sounds_directory = audio::get_sound_directory().unwrap();
     let frame_length: usize = 512; // default for every wake-word engine
     let mut frame_buffer: Vec<i16> = vec![0; frame_length];
     let mut silence_frames: u32 = 0;
 
-    // play some run phrase
-    // @TODO. Different sounds? Or better make it via commands or upcoming events system.
-    audio::play_sound(&sounds_directory.join("run.wav"));
+    // play some startup phrase
+    // audio::play_sound(&sounds_directory.join("run.wav"));
+    voices::play_greet();
 
     // start recording
     match recorder::start_recording() {
@@ -39,8 +40,15 @@ fn main_loop() -> Result<(), ()> {
         // check for stop signal
         if should_stop() {
             info!("Stop signal received, shutting down...");
+            voices::play_goodbye();
             ipc::send(IpcEvent::Stopping);
             break;
+        }
+
+        // check for text commands
+        if let Ok(text) = text_cmd_rx.try_recv() {
+            process_text_command(&text, &rt);
+            continue 'wake_word;
         }
 
         // read from microphone
@@ -70,14 +78,10 @@ fn main_loop() -> Result<(), ()> {
                 start = SystemTime::now();
                 silence_frames = 0;
 
-                // play some greet phrase
+                // play some reply phrase
                 // @TODO. Make it via commands or upcoming events system.
-                audio::play_sound(&sounds_directory.join(format!(
-                        "{}.wav",
-                        config::ASSISTANT_GREET_PHRASES
-                            .choose(&mut rand::thread_rng())
-                            .unwrap()
-                    )));
+                voices::play_reply();
+
 
                 // notify GUI we're listening
                 ipc::send(IpcEvent::Listening);
@@ -125,12 +129,13 @@ fn main_loop() -> Result<(), ()> {
                             info!("Wake word detected during chaining, reactivating...");
                             
                             // play greet sound
-                            audio::play_sound(&sounds_directory.join(format!(
-                                "{}.wav",
-                                config::ASSISTANT_GREET_PHRASES
-                                    .choose(&mut rand::thread_rng())
-                                    .unwrap()
-                            )));
+                            // audio::play_sound(&sounds_directory.join(format!(
+                            //     "{}.wav",
+                            //     config::ASSISTANT_GREET_PHRASES
+                            //         .choose(&mut rand::thread_rng())
+                            //         .unwrap()
+                            // )));
+                            voices::play_reply();
                             
                             // reset timer and continue listening
                             start = SystemTime::now();
@@ -152,59 +157,8 @@ fn main_loop() -> Result<(), ()> {
                             continue 'voice_recognition;
                         }
 
-                        // infer command (try intent recognition first, fallback to levenshtein)
-                        let cmd_result = if let Some((intent_id, confidence)) = 
-                            rt.block_on(intent::classify(&recognized_voice)) 
-                        {
-                            info!("Intent recognized: {} (confidence: {:.2})", intent_id, confidence);
-                            intent::get_command_by_intent(COMMANDS_LIST.get().unwrap(), &intent_id)
-                        } else {
-                            info!("Intent not recognized, trying levenshtein fallback ...");
-                            commands::fetch_command(&recognized_voice, COMMANDS_LIST.get().unwrap())
-                        };
-
-                        if let Some((cmd_path, cmd_config)) = cmd_result {
-                            info!("Command found: {:?}", cmd_path);
-                            info!("Executing!");
-
-                            // execute the command
-                            match commands::execute_command(&cmd_path, &cmd_config) {
-                                Ok(chain) => {
-                                    // success
-                                    info!("Command executed successfully.");
-
-                                    // notify GUI
-                                    ipc::send(IpcEvent::CommandExecuted {
-                                        id: cmd_config.id.clone(),
-                                        success: true,
-                                    });
-
-                                    if chain {
-                                        // chain commands
-                                        start = SystemTime::now();
-                                    } else {
-                                        // skip, if chaining is not required
-                                        start = start
-                                            .checked_sub(core::time::Duration::from_secs(1000))
-                                            .unwrap();
-                                    }
-
-                                    continue 'voice_recognition; // continue voice recognition
-                                }
-                                Err(msg) => {
-                                    // fail
-                                    error!("Error executing command: {}", msg);
-
-                                    ipc::send(IpcEvent::CommandExecuted {
-                                        id: cmd_config.id.clone(),
-                                        success: false,
-                                    });
-                                    ipc::send(IpcEvent::Error {
-                                        message: msg.to_string(),
-                                    });
-                                }
-                            }
-                        }
+                        // execute command (shared executor)
+                        execute_command(&recognized_voice, &rt);
 
                         // return to wake-word listening after command execution (no matter successful or not)
                         break 'voice_recognition;
@@ -236,10 +190,93 @@ fn main_loop() -> Result<(), ()> {
     Ok(())
 }
 
+
+// process text command from GUI
+fn process_text_command(text: &str, rt: &tokio::runtime::Runtime) {
+    info!("Processing text command: {}", text);
+    
+    ipc::send(IpcEvent::SpeechRecognized { text: text.to_string() });
+    
+    // filter text same as voice
+    let mut filtered = text.to_lowercase();
+    for tbr in config::ASSISTANT_PHRASES_TBR {
+        filtered = filtered.replace(tbr, "");
+    }
+    let filtered = filtered.trim();
+    
+    if filtered.is_empty() {
+        ipc::send(IpcEvent::Idle);
+        return;
+    }
+    
+    execute_command(filtered, rt);
+}
+
+// shared command execution logic (manual & voice)
+fn execute_command(text: &str, rt: &tokio::runtime::Runtime) {
+    let commands_list = match COMMANDS_LIST.get() {
+        Some(c) => c,
+        None => {
+            ipc::send(IpcEvent::Error { message: "Commands not loaded".to_string() });
+            ipc::send(IpcEvent::Idle);
+            return;
+        }
+    };
+    
+    // let sounds_directory = audio::get_sound_directory().unwrap();
+    
+    // try intent recognition first, fallback to levenshtein
+    let cmd_result = if let Some((intent_id, confidence)) = 
+        rt.block_on(intent::classify(text)) 
+    {
+        info!("Intent recognized: {} (confidence: {:.2})", intent_id, confidence);
+        intent::get_command_by_intent(commands_list, &intent_id)
+    } else {
+        info!("Intent not recognized, trying levenshtein fallback...");
+        commands::fetch_command(text, commands_list)
+    };
+    
+    if let Some((cmd_path, cmd_config)) = cmd_result {
+        info!("Command found: {:?}", cmd_path);
+        
+        match commands::execute_command(&cmd_path, &cmd_config) {
+            Ok(_) => {
+                info!("Command executed successfully");
+                voices::play_ok(); // command executed sound
+                ipc::send(IpcEvent::CommandExecuted {
+                    id: cmd_config.id.clone(),
+                    success: true,
+                });
+            }
+            Err(msg) => {
+                error!("Error executing command: {}", msg);
+                voices::play_error();
+                ipc::send(IpcEvent::CommandExecuted {
+                    id: cmd_config.id.clone(),
+                    success: false,
+                });
+                ipc::send(IpcEvent::Error { message: msg.to_string() });
+            }
+        }
+    } else {
+        info!("No command found for: {}", text);
+        // play "not understood" sound
+        // audio::play_sound(&sounds_directory.join("not_understand.wav"));
+        voices::play_not_found();
+        ipc::send(IpcEvent::Error { 
+            message: format!("Command not found: {}", text) 
+        });
+    }
+    
+    ipc::send(IpcEvent::Idle);
+}
+
+
 fn keyword_callback(keyword_index: i32) {}
 
 pub fn close(code: i32) {
     info!("Closing application.");
+    voices::play_goodbye();
     ipc::send(IpcEvent::Stopping);
     std::process::exit(code);
 }

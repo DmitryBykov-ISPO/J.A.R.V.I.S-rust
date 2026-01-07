@@ -12,10 +12,10 @@
 
     $: t = (key: string) => translate($translations, key)
 
-    let microphoneName = "Загрузка..."
+    let microphoneName = ""
     let wakeWordEngine = "Rustpotter"
     let sttEngine = "Vosk"
-    let vadInfo = "Snip + ChatGPT"
+    let vadInfo = ""
 
     onMount(async () => {
         microphoneName = t('stats-loading')
@@ -68,7 +68,7 @@
         <span class="stat-dot" class:active={$ipcConnected} style="--color: #3b82f6;"></span>
         <div class="stat-content">
             <span class="stat-label">{t('stats-resources')}</span>
-            <span class="stat-value">{#if jarvisRamUsage }RAM {$jarvisRamUsage}mb{:else}...{/if}</span>
+            <span class="stat-value">{#if $jarvisRamUsage }RAM {$jarvisRamUsage}mb{:else}...{/if}</span>
         </div>
     </div>
 </div>

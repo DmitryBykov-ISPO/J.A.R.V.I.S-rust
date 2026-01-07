@@ -13,6 +13,8 @@ export {
     disableIpc,
     disconnectIpc,
     sendAction,
+    sendIpcMessage,
+    sendTextCommand,
     stopJarvisApp,
     reloadCommands
 } from "./lib/ipc"

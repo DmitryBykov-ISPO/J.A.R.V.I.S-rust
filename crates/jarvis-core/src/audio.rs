@@ -57,9 +57,17 @@ pub fn init() -> Result<(), ()> {
 }
 
 pub fn play_sound(filename: &PathBuf) {
+    let audio_type = match AUDIO_TYPE.get() {
+        Some(t) => t,
+        None => {
+            warn!("Audio not initialized, cannot play: {}", filename.display());
+            return;
+        }
+    };
+    
     info!("Playing {}", filename.display());
 
-    match AUDIO_TYPE.get().unwrap() {
+    match audio_type {
         AudioType::Rodio => {
             rodio::play_sound(filename, true);
         }
@@ -75,18 +83,11 @@ pub fn get_sound_directory() -> Option<PathBuf> {
         SOUND_DIR.join(&s.voice)
     };
 
-    match voice_path.exists() && voice_path.cmp(&SOUND_DIR) != Ordering::Equal {
+    match voice_path.exists() {
         true => Some(voice_path),
         _ => {
-            let default_voice_path = SOUND_DIR.join(config::DEFAULT_VOICE);
-
-            match default_voice_path.exists() {
-                true => Some(default_voice_path),
-                _ => {
-                    error!("No sounds found. Search path - {:?}", voice_path);
-                    None
-                }
-            }
+            error!("No sounds folder found. Search path - {:?}", voice_path);
+            None
         }
     }
 }

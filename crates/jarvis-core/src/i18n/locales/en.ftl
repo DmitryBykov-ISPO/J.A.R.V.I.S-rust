@@ -54,7 +54,9 @@ settings-microphone = Microphone
 settings-microphone-desc = The assistant will listen to this microphone.
 settings-mic-default = Default (System)
 settings-voice = Assistant voice
-settings-voice-desc = Not all commands work with all sound packs.
+settings-voice-desc =
+    Not all commands work with all sound packs.
+    Click to listen the preview of sound.
 settings-wake-word-engine = Wake word engine
 settings-wake-word-desc = Choose the engine for wake word recognition.
 settings-stt-engine = Speech recognition
@@ -117,3 +119,8 @@ notification-saved = Settings saved!
 notification-error = Error
 notification-assistant-started = Assistant started
 notification-assistant-stopped = Assistant stopped
+
+# ETC
+search-error-not-running = Assistant is not running
+search-error-failed = Failed to execute command
+settings-no-voices = No voices found

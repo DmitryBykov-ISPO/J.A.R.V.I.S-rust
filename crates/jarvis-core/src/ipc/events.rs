@@ -30,6 +30,9 @@ pub enum IpcEvent {
     
     // Pong response
     Pong,
+
+    // request GUI to reveal/focus window
+    RevealWindow,
 }
 
 // Actions sent from GUI to jarvis-app
@@ -47,4 +50,7 @@ pub enum IpcAction {
     
     // Mute/unmute listening
     SetMuted { muted: bool },
+
+    // Execute text command
+    TextCommand { text: String },
 }

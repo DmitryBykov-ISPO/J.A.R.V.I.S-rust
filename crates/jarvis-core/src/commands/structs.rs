@@ -1,7 +1,7 @@
 use std::path::PathBuf;
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct JCommandsList {
     #[serde(skip)]
     pub path: PathBuf,
@@ -11,7 +11,7 @@ pub struct JCommandsList {
 
 
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct JCommand {
     pub id: String,
     pub action: String,

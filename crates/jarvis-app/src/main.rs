@@ -1,12 +1,13 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc;
 
 // include core
 use jarvis_core::{
     audio, audio_processing, commands, config, db, listener, recorder, stt, intent,
     ipc::{self, IpcAction},
-    i18n,
+    i18n, voices,
     APP_CONFIG_DIR, APP_LOG_DIR, COMMANDS_LIST, DB,
 };
 
@@ -40,6 +41,12 @@ fn main() -> Result<(), String> {
     // initialize database (settings)
     DB.set(Arc::new(RwLock::new(db::init_settings())))
             .expect("DB already initialized");
+
+    // init voices
+    let voice_id = DB.get().unwrap().read().voice.clone();
+    if let Err(e) = voices::init(&voice_id) {
+        warn!("Failed to init voices: {}", e);
+    }
 
     // init i18n
     i18n::init(&DB.get().unwrap().read().language);
@@ -108,7 +115,10 @@ fn main() -> Result<(), String> {
     info!("Initializing IPC...");
     ipc::init();
 
-    ipc::set_action_handler(|action| {
+    // channel for text commands (manually written in the GUI)
+    let (text_cmd_tx, text_cmd_rx) = mpsc::channel::<String>();
+
+    ipc::set_action_handler(move |action| {
         match action {
             IpcAction::Stop => {
                 info!("Received stop command from GUI");
@@ -122,6 +132,15 @@ fn main() -> Result<(), String> {
                 info!("Received mute request: {}", muted);
                 // TODO: implement mute
             }
+            IpcAction::TextCommand { text } => {
+                info!("Received text command: {}", text);
+                if let Err(e) = text_cmd_tx.send(text) {
+                    error!("Failed to send text command to app: {}", e);
+                }
+            }
+            IpcAction::Ping => {
+                // handled internally by server
+            }
             _ => {}
         }
     });
@@ -134,7 +153,7 @@ fn main() -> Result<(), String> {
     
     // start the app (in the background thread)
     std::thread::spawn(|| {
-        let _ = app::start();
+        let _ = app::start(text_cmd_rx);
     });
 
     tray::init_blocking();

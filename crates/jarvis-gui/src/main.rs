@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use jarvis_core::{config, db, i18n, APP_CONFIG_DIR, APP_LOG_DIR, DB};
+use jarvis_core::{config, db, i18n, voices, APP_CONFIG_DIR, APP_LOG_DIR, DB};
 
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -30,6 +30,16 @@ fn main() {
     // init i18n
     i18n::init(&settings.language);
 
+    // init voices
+    if let Err(e) = voices::init(&settings.voice) {
+        eprintln!("Failed to init voices: {}", e);
+    }
+
+    // init audio backend
+    if let Err(e) = jarvis_core::audio::init() {
+        eprintln!("Failed to init audio: {:?}", e);
+    }
+
     // set db
     DB.set(Arc::new(RwLock::new(settings)))
             .expect("DB already initialized");
@@ -55,6 +65,8 @@ fn main() {
             tauri_commands::get_author_name,
             tauri_commands::get_repository_link,
             tauri_commands::get_tg_official_link,
+            tauri_commands::get_boosty_link,
+            tauri_commands::get_patreon_link,
             tauri_commands::get_feedback_link,
 
             // fs
@@ -79,6 +91,15 @@ fn main() {
             tauri_commands::get_current_language,
             tauri_commands::set_language,
             tauri_commands::get_supported_languages,
+
+            // commands
+            tauri_commands::get_commands_count,
+            tauri_commands::get_commands_list,
+
+            // voices
+            tauri_commands::list_voices,
+            tauri_commands::get_voice,
+            tauri_commands::preview_voice,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

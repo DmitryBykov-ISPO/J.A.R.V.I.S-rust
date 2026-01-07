@@ -188,3 +188,11 @@ async fn handle_client(
 
     info!("IPC: Client disconnected: {}", peer_addr);
 }
+
+pub fn has_clients() -> bool {
+    if let Some(tx) = BROADCAST_TX.get() {
+        tx.receiver_count() > 0
+    } else {
+        false
+    }
+}
