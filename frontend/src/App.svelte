@@ -11,7 +11,8 @@
         startStatsPolling,
         stopStatsPolling,
         connectIpc,
-        disconnectIpc
+        disconnectIpc,
+        loadTranslations
     } from "@/stores"
 
     onMount(() => {
@@ -24,6 +25,9 @@
 
         // connect to IPC
         connectIpc()
+
+        // load language
+        loadTranslations()
     })
 
     onDestroy(() => {

@@ -11,6 +11,7 @@ pub mod audio;
 pub mod commands;
 pub mod config;
 pub mod db;
+pub mod i18n;
 
 #[cfg(feature = "jarvis_app")]
 pub mod listener;

@@ -22,6 +22,8 @@ pub struct Settings {
     pub vad: VadBackend,
     pub gain_normalizer: bool,
 
+    pub language: String,
+
     pub api_keys: ApiKeys,
 }
 
@@ -40,6 +42,8 @@ impl Default for Settings {
             noise_suppression: config::DEFAULT_NOISE_SUPPRESSION,
             vad: config::DEFAULT_VAD,
             gain_normalizer: config::DEFAULT_GAIN_NORMALIZER,
+
+            language: String::from("ru"),
 
             api_keys: ApiKeys {
                 picovoice: String::from(""),

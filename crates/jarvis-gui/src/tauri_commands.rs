@@ -26,3 +26,7 @@ pub use sys::*;
 // import STT commands
 mod stt;
 pub use stt::*;
+
+// import i18n commands
+mod i18n;
+pub use i18n::*;

@@ -26,6 +26,9 @@ sha2.workspace = true
 nnnoiseless = { workspace = true, optional = true }
 tokio-tungstenite = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
+fluent.workspace = true
+fluent-bundle.workspace = true
+unic-langid.workspace = true
 
 # pv_recorder = { workspace = true, optional = true }
 vosk = { version = "0.3.1", optional = true }

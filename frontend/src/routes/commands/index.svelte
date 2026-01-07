@@ -4,7 +4,9 @@
 
     import HDivider from "@/components/elements/HDivider.svelte"
     import Footer from "@/components/Footer.svelte"
-    import { appInfo } from "@/stores"
+    import { appInfo, translations, translate } from "@/stores"
+
+    $: t = (key: string) => translate($translations, key)
 
     let tgLink = ""
     appInfo.subscribe(info => {
@@ -15,13 +17,13 @@
 <Space h="xl" />
 
 <Notification
-    title="[404] Этот раздел еще находится в разработке!"
+    title={t('commands-wip-title')}
     icon={InfoCircled}
     color="blue"
     withCloseButton={false}
 >
-    Тут будет список команд + полноценный редактор команд.<br />
-    Следите за обновлениями в <a href={tgLink} target="_blank">нашем телеграм канале</a>!
+    {t('commands-wip-desc')}<br />
+    {t('commands-wip-follow')} <a href={tgLink} target="_blank">{t('commands-wip-channel')}</a>!
 </Notification>
 
 <div class="placeholder-image">

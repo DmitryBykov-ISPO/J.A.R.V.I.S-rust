@@ -1,46 +1,41 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte"
     import { invoke } from "@tauri-apps/api/core"
-    import { Notification, Space, Button } from "@svelteuidev/core"
-    import { InfoCircled } from "radix-icons-svelte"
 
+    import SearchBar from "@/components/elements/SearchBar.svelte"
     import ArcReactor from "@/components/elements/ArcReactor.svelte"
     import HDivider from "@/components/elements/HDivider.svelte"
     import Stats from "@/components/elements/Stats.svelte"
     import Footer from "@/components/Footer.svelte"
-
+    
     import {
         isJarvisRunning,
         updateJarvisStats,
-        jarvisState,
-        ipcConnected,
         enableIpc,
-        disableIpc
+        disableIpc,
+        translate,
+        translations
     } from "@/stores"
+
+    $: t = (key: string) => translate($translations, key)
 
     let processRunning = false
     let launching = false
 
-    // when process state changes, enable/disable IPC
     isJarvisRunning.subscribe((value) => {
         processRunning = value
-
         if (value) {
-            // process is running, enable IPC connection
             enableIpc()
         } else {
-            // process stopped, disable IPC (stops reconnect attempts)
             disableIpc()
         }
     })
 
     onMount(() => {
-        document.body.classList.add("assist-page")
         updateJarvisStats()
     })
 
     onDestroy(() => {
-        document.body.classList.remove("assist-page")
         disableIpc()
     })
 
@@ -48,8 +43,6 @@
         launching = true
         try {
             await invoke("run_jarvis_app")
-
-            // wait for startup
             setTimeout(async () => {
                 await updateJarvisStats()
                 launching = false
@@ -61,46 +54,35 @@
     }
 </script>
 
-<HDivider />
+<div class="app-container assist-page">
 
-{#if !processRunning}
-    <Notification
-        title="Внимание!"
-        icon={InfoCircled}
-        color="cyan"
-        withCloseButton={false}
-    >
-        В данный момент ассистент не запущен.<br />
-        Но вы всё еще можете изменять его настройки.<br />
-        <br />
+    <div class="search search-section">
+        <HDivider />
+        <SearchBar />
+    </div>
 
-        <Button
-            color="lime"
-            radius="md"
-            size="sm"
-            uppercase
-            ripple
-            fullSize
-            on:click={runAssistant}
-            disabled={launching}
-        >
-            {launching ? "Запуск..." : "Запустить"}
-        </Button>
-    </Notification>
-{:else}
-    <ArcReactor />
+    <div class="reactor-section">
+        <div class="reactor-wrapper" class:dimmed={!processRunning}>
+            <ArcReactor />
+        </div>
+        
+        {#if !processRunning}
+            <div class="offline-badge">
+                <span class="offline-icon">⚠</span>
+                <span class="offline-text">{t('assistant-not-running')}</span>
+                <small>{t('assistant-offline-hint')}</small>
+            </div>
+            <button 
+                class="start-button" 
+                on:click={runAssistant}
+                disabled={launching}
+            >
+                {launching ? t('btn-starting') : t('btn-start')}
+            </button>
+        {/if}
+    </div>
 
-    {#if !$ipcConnected}
-        <Notification
-            title="Подключение..."
-            color="yellow"
-            withCloseButton={false}
-        >
-            Устанавливается связь с ассистентом...
-        </Notification>
-    {/if}
-{/if}
-
-<HDivider noMargin />
-<Stats />
-<Footer />
+    <HDivider noMargin />
+    <Stats />
+    <Footer />
+</div>

@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use jarvis_core::{config, db, APP_CONFIG_DIR, APP_LOG_DIR, DB};
+use jarvis_core::{config, db, i18n, APP_CONFIG_DIR, APP_LOG_DIR, DB};
 
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -26,6 +26,11 @@ fn main() {
 
     // init db
     let settings = db::init_settings();
+
+    // init i18n
+    i18n::init(&settings.language);
+
+    // set db
     DB.set(Arc::new(RwLock::new(settings)))
             .expect("DB already initialized");
     let db_arc = DB.get().unwrap().clone();
@@ -67,6 +72,13 @@ fn main() {
 
             // vosk
             tauri_commands::list_vosk_models,
+
+            // i18n
+            tauri_commands::get_translations,
+            tauri_commands::translate,
+            tauri_commands::get_current_language,
+            tauri_commands::set_language,
+            tauri_commands::get_supported_languages,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

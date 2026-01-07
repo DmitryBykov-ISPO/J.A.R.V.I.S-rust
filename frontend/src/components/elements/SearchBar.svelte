@@ -1,4 +1,8 @@
 <script lang="ts">
+    import { translations, translate } from "@/stores"
+    
+    $: t = (key: string) => translate($translations, key)
+    
     let searchQuery = ""
 </script>
 
@@ -8,12 +12,11 @@
             bind:value={searchQuery}
             type="text"
             name="q"
-            placeholder="Введите команду или скажите «Джарвис» ..."
+            placeholder={t('search-placeholder')}
             autocomplete="off"
             minlength="3"
             maxlength="30"
         />
-        <button type="submit" aria-label="Search"></button>
         <small>Enter</small>
     </form>
 </div>

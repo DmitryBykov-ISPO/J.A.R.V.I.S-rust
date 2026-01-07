@@ -15,6 +15,7 @@ pub fn db_read(state: tauri::State<'_, AppState>, key: &str) -> String {
         "noise_suppression" => format!("{:?}", settings.noise_suppression),
         "vad" => format!("{:?}", settings.vad),
         "gain_normalizer" => settings.gain_normalizer.to_string(),
+        "language" => settings.language.to_string(),
         "api_key__picovoice" => settings.api_keys.picovoice.clone(),
         "api_key__openai" => settings.api_keys.openai.clone(),
         _ => String::new(),
@@ -77,6 +78,9 @@ pub fn db_write(state: tauri::State<'_, AppState>, key: &str, val: &str) -> bool
                     "false" => settings.gain_normalizer = false,
                     _ => return false,
                 }
+            }
+            "language" => {
+                settings.language = val.to_string();
             }
             "api_key__picovoice" => {
                 settings.api_keys.picovoice = val.to_string();

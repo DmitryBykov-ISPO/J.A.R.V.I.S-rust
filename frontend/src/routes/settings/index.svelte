@@ -5,7 +5,7 @@
     import { setTimeout } from "worker-timers"
 
     import { showInExplorer } from "@/functions"
-    import { appInfo, assistantVoice } from "@/stores"
+    import { appInfo, assistantVoice, translations, translate } from "@/stores"
 
     import HDivider from "@/components/elements/HDivider.svelte"
     import Footer from "@/components/Footer.svelte"
@@ -32,6 +32,8 @@
         QuestionMarkCircled,
         CrossCircled
     } from "radix-icons-svelte"
+
+    $: t = (key: string) => translate($translations, key)
 
     // ### STATE
     interface MicrophoneOption {
@@ -164,13 +166,13 @@
 <Space h="xl" />
 
 <Notification
-    title="БЕТА версия!"
+    title={t('settings-beta-title')}
     icon={QuestionMarkCircled}
     color="blue"
     withCloseButton={false}
 >
-    Часть функций может работать некорректно.<br />
-    Сообщайте обо всех найденных багах в <a href={feedbackLink} target="_blank">наш телеграм бот</a>.
+    {t('settings-beta-desc')}<br />
+    {t('settings-beta-feedback')} <a href={feedbackLink} target="_blank">{t('settings-beta-bot')}</a>.
     <Space h="sm" />
     <Button
         color="gray"
@@ -179,7 +181,7 @@
         uppercase
         on:click={() => showInExplorer(logFilePath)}
     >
-        Открыть папку с логами
+        {t('settings-open-logs')}
     </Button>
 </Notification>
 
@@ -187,7 +189,7 @@
 
 {#if settingsSaved}
     <Notification
-        title="Настройки сохранены!"
+        title={t('notification-saved')}
         icon={Check}
         color="teal"
         on:close={() => { settingsSaved = false }}
@@ -196,8 +198,7 @@
 {/if}
 
 <Tabs class="form" color="#8AC832" position="left">
-    <!-- general tab -->
-    <Tabs.Tab label="Общее" icon={Gear}>
+    <Tabs.Tab label={t('settings-general')} icon={Gear}>
         <Space h="sm" />
         <NativeSelect
             data={[
@@ -206,61 +207,58 @@
                 { label: "Jarvis (от Хауди)", value: "jarvis-howdy" },
                 { label: "Jarvis OG (из фильмов)", value: "jarvis-og" }
             ]}
-            label="Голос ассистента"
-            description="Не все команды работают со всеми звуковыми пакетами."
+            label={t('settings-voice')}
+            description={t('settings-voice-desc')}
             variant="filled"
             bind:value={voiceVal}
         />
     </Tabs.Tab>
 
-    <!-- devices tab -->
-    <Tabs.Tab label="Устройства" icon={Mix}>
+    <Tabs.Tab label={t('settings-devices')} icon={Mix}>
         <Space h="sm" />
         <NativeSelect
             data={availableMicrophones}
-            label="Выберите микрофон"
-            description="Его будет слушать ассистент."
+            label={t('settings-microphone')}
+            description={t('settings-microphone-desc')}
             variant="filled"
             bind:value={selectedMicrophone}
         />
     </Tabs.Tab>
 
-    <!-- neural networks tab -->
-    <Tabs.Tab label="Нейросети" icon={Cube}>
+    <Tabs.Tab label={t('settings-neural-networks')} icon={Cube}>
         <Space h="sm" />
         <NativeSelect
             data={[
                 { label: "Rustpotter", value: "Rustpotter" },
-                { label: "Vosk (медленный)", value: "Vosk" },
-                { label: "Picovoice Porcupine (требует API ключ)", value: "Picovoice" }
+                { label: "Vosk", value: "Vosk" },
+                { label: "Picovoice Porcupine", value: "Picovoice" }
             ]}
-            label="Распознавание активационной фразы (Wake Word)"
-            description="Выберите, какая нейросеть будет отвечать за распознавание активационной фразы."
+            label={t('settings-wake-word-engine')}
+            description={t('settings-wake-word-desc')}
             variant="filled"
             bind:value={selectedWakeWordEngine}
         />
 
         {#if selectedWakeWordEngine === "picovoice"}
             <Space h="sm" />
-            <Alert title="Внимание!" color="#868E96" variant="outline">
+            <Alert title={t('settings-attention')} color="#868E96" variant="outline">
                 <Notification
-                    title="Эта нейросеть работает не у всех!"
+                    title={t('settings-picovoice-warning')}
                     icon={CrossCircled}
                     color="orange"
                     withCloseButton={false}
                 >
-                    Мы ждем официального патча от разработчиков.
+                    {t('settings-picovoice-waiting')}
                 </Notification>
                 <Space h="sm" />
                 <Text size="sm" color="gray">
-                    Введите сюда свой ключ Picovoice.<br />
-                    Он выдается бесплатно при регистрации в
+                    {t('settings-picovoice-key-desc')}
                     <a href="https://console.picovoice.ai/" target="_blank">Picovoice Console</a>.
                 </Text>
                 <Space h="sm" />
                 <Input
                     icon={Code}
-                    placeholder="Ключ Picovoice"
+                    placeholder={t('settings-picovoice-key')}
                     variant="filled"
                     autocomplete="off"
                     bind:value={apiKeyPicovoice}
@@ -272,11 +270,11 @@
         {#key availableVoskModels}
         <NativeSelect
             data={[
-                { label: "Авто-определение", value: "" },
+                { label: t('settings-auto-detect'), value: "" },
                 ...availableVoskModels
             ]}
-            label="Модель распознавания речи (Vosk)"
-            description="Выберите модель Vosk для распознавания речи."
+            label={t('settings-vosk-model')}
+            description={t('settings-vosk-model-desc')}
             variant="filled"
             bind:value={selectedVoskModel}
         />
@@ -284,9 +282,9 @@
 
         {#if availableVoskModels.length === 0}
             <Space h="sm" />
-            <Alert title="Модели не найдены" color="orange" variant="outline">
+            <Alert title={t('settings-models-not-found')} color="orange" variant="outline">
                 <Text size="sm" color="gray">
-                    Поместите модели Vosk в папку resources/vosk
+                    {t('settings-models-hint')}
                 </Text>
             </Alert>
         {/if}
@@ -297,8 +295,8 @@
                 { label: "Intent Classifier", value: "IntentClassifier" },
                 { label: "Rasa", value: "Rasa" }
             ]}
-            label="Распознавание команд (Intent Recognition)"
-            description="Выберите, какая нейросеть будет отвечать за распознавание команд."
+            label={t('settings-intent-engine')}
+            description={t('settings-intent-engine-desc')}
             variant="filled"
             bind:value={selectedIntentRecognitionEngine}
         />
@@ -307,11 +305,11 @@
 
         <NativeSelect
             data={[
-                { label: "Отключено", value: "None" },
+                { label: t('settings-disabled'), value: "None" },
                 { label: "Nnnoiseless", value: "Nnnoiseless" }
             ]}
-            label="Шумоподавление"
-            description="Уменьшает фоновый шум. Может ухудшить распознавание в некоторых случаях."
+            label={t('settings-noise-suppression')}
+            description={t('settings-noise-suppression-desc')}
             variant="filled"
             bind:value={selectedNoiseSuppression}
         />
@@ -320,40 +318,39 @@
 
         <NativeSelect
             data={[
-                { label: "Отключено", value: "None" },
-                { label: "Energy (простой)", value: "Energy" },
-                { label: "Nnnoiseless (нейросеть)", value: "Nnnoiseless" }
+                { label: t('settings-disabled'), value: "None" },
+                { label: "Energy", value: "Energy" },
+                { label: "Nnnoiseless", value: "Nnnoiseless" }
             ]}
-            label="Определение голосой активности (VAD)"
-            description="Пропускает тишину, экономит ресурсы CPU."
+            label={t('settings-vad')}
+            description={t('settings-vad-desc')}
             variant="filled"
             bind:value={selectedVad}
         />
 
         <Space h="md" />
 
-        <InputWrapper label="Нормализация громкости">
+        <InputWrapper label={t('settings-gain-normalizer')}>
             <Text size="sm" color="gray">
-                Автоматически регулирует уровень громкости.
+                {t('settings-gain-normalizer-desc')}
             </Text>
             <Space h="xs" />
             <Switch
-                label={gainNormalizerEnabled ? "Включено" : "Выключено"}
+                label={gainNormalizerEnabled ? t('settings-enabled') : t('settings-disabled')}
                 bind:checked={gainNormalizerEnabled}
             />
         </InputWrapper>
 
         <Space h="xl" />
 
-        <InputWrapper label="Ключ OpenAI">
+        <InputWrapper label={t('settings-openai-key')}>
             <Text size="sm" color="gray">
-                В данный момент ChatGPT <u>не поддерживается</u>.
-                Он будет добавлен в ближайших обновлениях.
+                {t('settings-openai-not-supported')}
             </Text>
             <Space h="sm" />
             <Input
                 icon={Code}
-                placeholder="Ключ OpenAI"
+                placeholder={t('settings-openai-key')}
                 variant="filled"
                 autocomplete="off"
                 bind:value={apiKeyOpenai}
@@ -375,7 +372,7 @@
     on:click={saveSettings}
     disabled={saveButtonDisabled}
 >
-    Сохранить
+    {t('settings-save')}
 </Button>
 
 <Space h="sm" />
@@ -388,7 +385,7 @@
     fullSize
     on:click={() => $goto("/")}
 >
-    Назад
+    {t('settings-back')}
 </Button>
 
 <HDivider />

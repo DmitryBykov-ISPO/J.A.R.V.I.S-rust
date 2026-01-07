@@ -10,7 +10,7 @@ use image;
 #[cfg(target_os="windows")]
 use winit::platform::windows::EventLoopBuilderExtWindows;
 
-use jarvis_core::config;
+use jarvis_core::{config, i18n};
 
 const TRAY_ICON_BYTES: &[u8] = include_bytes!("../../../resources/icons/32x32.png");
 
@@ -21,22 +21,22 @@ pub fn init_blocking() {
     let icon = load_icon_from_bytes(TRAY_ICON_BYTES);
 
     // form tray menu
-    let tray_menu = Menu::with_items(&[
-        &MenuItem::new("Перезапуск", true, None),
-        &MenuItem::new("Настройки", true, None),
-        &MenuItem::new("Выход", true, None),
-    ])
-    .unwrap();
+    // let tray_menu = Menu::with_items(&[
+    //     &MenuItem::new("Перезапуск", true, None),
+    //     &MenuItem::new("Настройки", true, None),
+    //     &MenuItem::new("Выход", true, None),
+    // ])
+    // .unwrap();
 
     let tray_menu = Menu::with_items(&[
-        &MenuItem::with_id("restart", "Перезапуск", true, None),
-        &MenuItem::with_id("settings", "Настройки", true, None),
-        &MenuItem::with_id("exit", "Выход", true, None),
+        &MenuItem::with_id("restart", i18n::t("tray-restart"), true, None),
+        &MenuItem::with_id("settings", i18n::t("tray-settings"), true, None),
+        &MenuItem::with_id("exit", i18n::t("tray-exit"), true, None),
     ]).unwrap();
 
     let _tray_icon = TrayIconBuilder::new()
         .with_menu(Box::new(tray_menu))
-        .with_tooltip(config::TRAY_TOOLTIP)
+        .with_tooltip(i18n::t("tray-tooltip"))
         .with_icon(icon)
         .build()
         .unwrap();

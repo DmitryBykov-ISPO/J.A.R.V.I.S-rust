@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use jarvis_core::{
     audio, audio_processing, commands, config, db, listener, recorder, stt, intent,
     ipc::{self, IpcAction},
+    i18n,
     APP_CONFIG_DIR, APP_LOG_DIR, COMMANDS_LIST, DB,
 };
 
@@ -39,6 +40,9 @@ fn main() -> Result<(), String> {
     // initialize database (settings)
     DB.set(Arc::new(RwLock::new(db::init_settings())))
             .expect("DB already initialized");
+
+    // init i18n
+    i18n::init(&DB.get().unwrap().read().language);
 
     // initialize tray
     // @TODO. macOS currently not supported for tray functionality,
