@@ -1,4 +1,4 @@
-use crate::{config, stt};
+use crate::{config, stt, i18n};
 
 pub fn init() -> Result<(), ()> {
     Ok(()) // nothing to init for Vosk
@@ -15,8 +15,12 @@ pub fn data_callback(frame_buffer: &[i16]) -> Option<i32> {
         
         info!("Wake word candidate: '{}'", recognized);
         
+        // language-specific wake phrase
+        let lang = i18n::get_language();
+        let wake_phrase = config::get_wake_phrase(&lang);
+
         // verify with seqdiff ratio
-        let wake_chars: Vec<char> = config::VOSK_FETCH_PHRASE.chars().collect();
+        let wake_chars: Vec<char> = wake_phrase.chars().collect();
         let recognized_chars: Vec<char> = recognized.chars().collect();
         let similarity = seqdiff::ratio(&wake_chars, &recognized_chars);
         

@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::fs;
 
 use crate::commands::{self, JCommand, JCommandsList};
-use crate::{APP_CONFIG_DIR};
+use crate::{APP_CONFIG_DIR, i18n};
 
 static CLASSIFIER: OnceCell<IntentClassifier> = OnceCell::const_new();
 // static COMMANDS_MAP: OnceCell<Vec<JCommandsList>> = OnceCell::const_new();
@@ -16,7 +16,7 @@ static CLASSIFIER: OnceCell<IntentClassifier> = OnceCell::const_new();
 const TRAINING_CACHE_FILE: &str = "intent_training.json";
 const COMMANDS_HASH_FILE: &str = "commands_hash.txt";
 
-pub async fn init(commands: &Vec<JCommandsList>) -> Result<(), String> {
+pub async fn init(commands: &[JCommandsList]) -> Result<(), String> {
     // parse commands first
     // let commands = commands::parse_commands()?;
     let current_hash = commands::commands_hash(&commands); // regen hash for current commands set
@@ -68,7 +68,7 @@ pub async fn classify(text: &str) -> Result<IntentPrediction, IntentError> {
 }
 
 // get command by intent ID
-pub fn get_command(commands: &'static Vec<JCommandsList>, intent_id: &str) -> Option<(&'static PathBuf, &'static JCommand)> {
+pub fn get_command(commands: &'static [JCommandsList], intent_id: &str) -> Option<(&'static PathBuf, &'static JCommand)> {
     // let commands = COMMANDS_MAP.get()?;
     
     for assistant_cmd in commands {
@@ -85,11 +85,19 @@ pub fn get_command(commands: &'static Vec<JCommandsList>, intent_id: &str) -> Op
 // based on: https://github.com/ciresnave/intent-classifier/blob/main/examples/basic_usage.rs
 async fn train_classifier(
     classifier: &IntentClassifier,
-    commands: &Vec<JCommandsList>
+    commands: &[JCommandsList]
 ) -> Result<(), String> {
+    let lang = i18n::get_language();
+    info!("Training intent classifier for language: {}", lang);
+
+    let mut total_examples = 0;
+
     for assistant_cmd in commands {
         for cmd in &assistant_cmd.commands {
-            for phrase in &cmd.phrases {
+            // use language-specific phrases
+            let phrases = cmd.get_phrases(&lang);
+            
+            for phrase in phrases.iter() {
                 let example = TrainingExample {
                     text: phrase.clone(),
                     intent: IntentId::from(cmd.id.as_str()),
@@ -99,9 +107,12 @@ async fn train_classifier(
                 
                 classifier.add_training_example(example).await
                     .map_err(|e| format!("Failed to add training example: {}", e))?;
+                
+                total_examples += 1;
             }
         }
     }
-    
+
+    info!("Added {} training examples for language '{}'", total_examples, lang);
     Ok(())
 }

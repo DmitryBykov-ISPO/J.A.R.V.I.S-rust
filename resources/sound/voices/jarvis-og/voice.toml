@@ -4,7 +4,7 @@ name = "Jarvis OG"
 author = "Abraham (Priler)"
 languages = ["ru"]
 
-[reactions]
+[reactions.ru]
 # app startup
 greet = ["run"]
 

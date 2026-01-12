@@ -78,15 +78,15 @@ fn load_voice_config(toml_path: &Path, voice_path: &Path) -> Result<structs::Voi
 
 
 
-pub fn list_voices() -> Vec<structs::VoiceConfig> {
-    VOICES.get().cloned().unwrap_or_default()
+pub fn list_voices() -> &'static [structs::VoiceConfig] {
+    VOICES.get().map(|v| v.as_slice()).unwrap_or(&[])
 }
 
-pub fn get_voice(voice_id: &str) -> Option<structs::VoiceConfig> {
-    VOICES.get()?.iter().find(|v| v.voice.id == voice_id).cloned()
+pub fn get_voice(voice_id: &str) -> Option<&'static structs::VoiceConfig> {
+    VOICES.get()?.iter().find(|v| v.voice.id == voice_id)
 }
 
-pub fn get_current_voice() -> Option<structs::VoiceConfig> {
+pub fn get_current_voice() -> Option<&'static structs::VoiceConfig> {
     let current_id = CURRENT_VOICE_ID.get()?.read().clone();
     get_voice(&current_id)
 }
@@ -106,11 +106,11 @@ fn get_current_language() -> String {
 
 
 fn find_sound_file(voice_path: &Path, lang: &str, sound_name: &str) -> Option<PathBuf> {
-    let extensions = ["mp3", "wav", "ogg"];
+    const EXTENSIONS: &[&str] = &["mp3", "wav", "ogg"];
     let lang_path = voice_path.join(lang);
     
-    // try language subfolder first
-    for ext in &extensions {
+    // try language subfolder first (/en, /ua, /ru, etc)
+    for ext in EXTENSIONS {
         let file_path = lang_path.join(format!("{}.{}", sound_name, ext));
         if file_path.exists() {
             return Some(file_path);
@@ -118,7 +118,7 @@ fn find_sound_file(voice_path: &Path, lang: &str, sound_name: &str) -> Option<Pa
     }
     
     // fallback to root voice folder
-    for ext in &extensions {
+    for ext in EXTENSIONS {
         let file_path = voice_path.join(format!("{}.{}", sound_name, ext));
         if file_path.exists() {
             return Some(file_path);
@@ -128,29 +128,20 @@ fn find_sound_file(voice_path: &Path, lang: &str, sound_name: &str) -> Option<Pa
     None
 }
 
-fn play_random_from(sounds: &[String]) {
+fn play_random_from_list(voice_path: &Path, lang: &str, sounds: &[String]) {
     if sounds.is_empty() {
         return;
     }
     
-    let voice = match get_current_voice() {
-        Some(v) => v,
-        None => {
-            warn!("No current voice set");
-            return;
-        }
-    };
-    
-    let lang = get_current_language();
     let sound_name = sounds.choose(&mut rand::thread_rng()).unwrap();
     
-    match find_sound_file(&voice.path, &lang, sound_name) {
+    match find_sound_file(voice_path, lang, sound_name) {
         Some(path) => {
             debug!("Playing: {:?}", path);
             audio::play_sound(&path);
         }
         None => {
-            warn!("Sound not found: {} (lang: {}, voice: {})", sound_name, lang, voice.voice.id);
+            warn!("Sound not found: {} (lang: {})", sound_name, lang);
         }
     }
 }
@@ -164,32 +155,53 @@ pub fn play(reaction: structs::Reaction) {
         }
     };
     
+    let lang = get_current_language();
+    
+    let reactions = match voice.reactions.get(&lang) {
+        Some(r) => r,
+        None => {
+            warn!("No reactions for language: {}", lang);
+            return;
+        }
+    };
+
     let sounds = match reaction {
         structs::Reaction::Greet => {
-            // try time specific first
+            // try time-specific first
             let time_specific = match time::TimeOfDay::now() {
-                time::TimeOfDay::Morning => &voice.reactions.greet_morning,
-                time::TimeOfDay::Day => &voice.reactions.greet_day,
-                time::TimeOfDay::Evening => &voice.reactions.greet_evening,
-                time::TimeOfDay::Night => &voice.reactions.greet_night,
+                time::TimeOfDay::Morning => &reactions.greet_morning,
+                time::TimeOfDay::Day => &reactions.greet_day,
+                time::TimeOfDay::Evening => &reactions.greet_evening,
+                time::TimeOfDay::Night => &reactions.greet_night,
             };
 
             if time_specific.is_empty() {
-                // fallback to simple run voice (not time specific)
-                &voice.reactions.greet
+                &reactions.greet
             } else {
                 time_specific
             }
         }
-        structs::Reaction::Reply => &voice.reactions.reply,
-        structs::Reaction::Ok => &voice.reactions.ok,
-        structs::Reaction::NotFound => &voice.reactions.not_found,
-        structs::Reaction::Thanks => &voice.reactions.thanks,
-        structs::Reaction::Error => &voice.reactions.error,
-        structs::Reaction::Goodbye => &voice.reactions.goodbye,
+        structs::Reaction::Reply => &reactions.reply,
+        structs::Reaction::Ok => &reactions.ok,
+        structs::Reaction::NotFound => &reactions.not_found,
+        structs::Reaction::Thanks => &reactions.thanks,
+        structs::Reaction::Error => &reactions.error,
+        structs::Reaction::Goodbye => &reactions.goodbye,
     };
     
-    play_random_from(sounds);
+    play_random_from_list(&voice.path, &lang, sounds);
+}
+
+pub fn play_random_from(sounds: &[String]) {
+    let voice = match get_current_voice() {
+        Some(v) => v,
+        None => {
+            warn!("No current voice set");
+            return;
+        }
+    };
+    
+    play_random_from_list(&voice.path, &get_current_language(), sounds);
 }
 
 // Play a preview sound for a specific voice
@@ -204,10 +216,18 @@ pub fn play_preview(voice_id: &str) {
     
     let lang = get_current_language();
     
-    // pick from reply or ok sounds for preview
-    let sounds: Vec<&String> = voice.reactions.reply.iter()
-        .chain(voice.reactions.ok.iter())
-        .chain(voice.reactions.greet.iter())
+    let reactions = match voice.reactions.get(&lang) {
+        Some(r) => r,
+        None => {
+            warn!("No reactions for language {} in voice {}", lang, voice_id);
+            return;
+        }
+    };
+    
+    // pick from reply, ok, or greet sounds for preview
+    let sounds: Vec<&String> = reactions.reply.iter()
+        .chain(reactions.ok.iter())
+        .chain(reactions.greet.iter())
         .collect();
     
     if sounds.is_empty() {

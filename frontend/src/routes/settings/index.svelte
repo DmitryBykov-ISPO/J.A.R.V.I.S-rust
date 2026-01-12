@@ -158,9 +158,18 @@
             ]
 
             // load vosk models
+            const languageNames: Record<string, string> = {
+                us: 'English',
+                ru: 'Русский',
+                uk: 'Українська',
+                de: 'German',
+                fr: 'French',
+                es: 'Spanish',
+                // ..
+            };
             const voskModels = await invoke<{ name: string; language: string; size: string }[]>("list_vosk_models")
             availableVoskModels = voskModels.map(m => ({
-                label: `${m.name} (${m.language}, ${m.size})`,
+                label: `${m.name} (${languageNames[m.language] ?? m.language}, ${m.size})`,
                 value: m.name
             }))
 

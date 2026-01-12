@@ -82,7 +82,7 @@ fn main() -> Result<(), String> {
             Vec::new()
         }
     };
-    info!("Commands initialized. Count: {}, List: {:?}", cmds.len(), commands::list(&cmds));
+    info!("Commands initialized. Count: {}, List: {:?}", cmds.len(), commands::list_paths(&cmds));
     COMMANDS_LIST.set(cmds).unwrap();
 
     // init audio

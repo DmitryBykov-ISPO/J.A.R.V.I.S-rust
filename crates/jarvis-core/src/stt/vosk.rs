@@ -4,8 +4,7 @@ use vosk::{DecodingState, Model, Recognizer};
 use std::sync::Mutex;
 
 // use crate::config::VOSK_MODEL_PATH;
-use crate::config;
-use crate::stt::vosk_models;
+use crate::{stt::vosk_models, i18n, config};
 use crate::DB;
 
 static MODEL: OnceCell<Model> = OnceCell::new();
@@ -23,19 +22,14 @@ pub fn init_vosk() -> Result<(), String> {
     let model = Model::new(model_path.to_str().unwrap())
         .ok_or_else(|| format!("Failed to load Vosk model from: {}", model_path.display()))?;
 
+    // language-specific wake grammar
+    let lang = i18n::get_language();
+    let wake_grammar = config::get_wake_grammar(&lang);
+    info!("Wake grammar for '{}': {:?}", lang, wake_grammar);
+
     //let mut recognizer = Recognizer::new(&model, 16000.0)
     //    .ok_or("Failed to create Vosk recognizer")?;
-    let wake_phrases: &[&str] = &[
-        config::VOSK_FETCH_PHRASE,
-        "[unk]",
-        "джон",
-        "джони", 
-        "джей",
-        "джонстон",
-        "привет",
-        "давай",
-    ];
-    let mut wake_recognizer = Recognizer::new_with_grammar(&model, 16000.0, wake_phrases)
+    let mut wake_recognizer = Recognizer::new_with_grammar(&model, 16000.0, wake_grammar)
         .ok_or("Failed to create wake word recognizer")?;
 
     wake_recognizer.set_max_alternatives(1); // required for confidence check later on

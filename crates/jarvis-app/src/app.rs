@@ -1,7 +1,8 @@
 use std::sync::mpsc::Receiver;
 use std::time::SystemTime;
 
-use jarvis_core::{audio_buffer::AudioRingBuffer, audio_processing, commands, config, listener, recorder, stt, COMMANDS_LIST, intent, voices, ipc::{self, IpcEvent}};
+use jarvis_core::{audio_buffer::AudioRingBuffer, audio_processing, commands, config, listener, recorder, stt, COMMANDS_LIST, intent, voices, ipc::{self, IpcEvent}, i18n};
+use rand::seq::SliceRandom;
 
 use crate::should_stop;
 
@@ -183,7 +184,8 @@ fn recognize_command(
                     recognized_voice = recognized_voice.to_lowercase();
                     
                     // check if wake word repeated (reactivate)
-                    if recognized_voice.contains(config::VOSK_FETCH_PHRASE) {
+                    let wake_phrase = config::get_wake_phrase(&i18n::get_language());
+                    if recognized_voice.contains(wake_phrase) {
                         info!("Wake word detected during chaining, reactivating...");
                         voices::play_reply();
                         stt::reset_speech_recognizer();
@@ -198,9 +200,13 @@ fn recognize_command(
                     }
                     
                     // filter activation phrases
-                    for tbr in config::ASSISTANT_PHRASES_TBR {
+                    // for tbr in config::ASSISTANT_PHRASES_TBR {
+                    //     recognized_voice = recognized_voice.replace(tbr, "");
+                    // }
+                    for tbr in config::get_phrases_to_remove(&i18n::get_language()) {
                         recognized_voice = recognized_voice.replace(tbr, "");
                     }
+
                     recognized_voice = recognized_voice.trim().to_string();
                     
                     if recognized_voice.is_empty() {
@@ -257,9 +263,13 @@ fn process_text_command(text: &str, rt: &tokio::runtime::Runtime) {
     ipc::send(IpcEvent::SpeechRecognized { text: text.to_string() });
     
     let mut filtered = text.to_lowercase();
-    for tbr in config::ASSISTANT_PHRASES_TBR {
+    // for tbr in config::ASSISTANT_PHRASES_TBR {
+    //     filtered = filtered.replace(tbr, "");
+    // }
+    for tbr in config::get_phrases_to_remove(&i18n::get_language()) {
         filtered = filtered.replace(tbr, "");
     }
+
     let filtered = filtered.trim();
     
     if filtered.is_empty() {
@@ -299,7 +309,8 @@ fn execute_command(text: &str, rt: &tokio::runtime::Runtime) -> bool {
         match commands::execute_command(&cmd_path, &cmd_config) {
             Ok(chain) => {
                 info!("Command executed successfully");
-                voices::play_ok();
+                // voices::play_ok();
+                voices::play_random_from(cmd_config.get_sounds(&i18n::get_language()).as_slice());
                 ipc::send(IpcEvent::CommandExecuted {
                     id: cmd_config.id.clone(),
                     success: true,

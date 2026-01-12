@@ -32,6 +32,10 @@ body {
     border-radius: 3px;
 }
 
+.svelteui-InputWrapper-description {
+    white-space: pre-line;
+}
+
 // ### FONTS
 $prim-font: "Roboto", sans-serif;
 $sec-font: "Roboto Condensed", sans-serif;

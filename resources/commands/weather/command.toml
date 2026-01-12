@@ -1,0 +1,18 @@
+[[commands]]
+id = "weather"
+action = "cli"
+cli_cmd = "weather.py"
+
+[commands.phrases]
+ru = [
+    "какая погода",
+    "погода"
+]
+en = [
+    "what's the weather",
+    "weather"
+]
+
+[commands.sounds]
+ru = ["weather_ru_1", "weather_ru_2"]
+en = ["weather_en_1", "weather_en_2"]

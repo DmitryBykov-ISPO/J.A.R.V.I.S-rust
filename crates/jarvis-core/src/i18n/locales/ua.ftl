@@ -92,7 +92,9 @@ settings-picovoice-key = Ключ Picovoice
 # settings - vosk
 settings-auto-detect = Авто-визначення
 settings-vosk-model = Модель розпізнавання мовлення (Vosk)
-settings-vosk-model-desc = Виберіть модель Vosk для розпізнавання мовлення.
+settings-vosk-model-desc =
+    Виберіть модель Vosk для розпізнавання мовлення.
+    Ви можете завантажити моделі тут: https://alphacephei.com/vosk/models
 settings-models-not-found = Моделі не знайдено
 settings-models-hint = Помістіть моделі Vosk в папку resources/vosk
 

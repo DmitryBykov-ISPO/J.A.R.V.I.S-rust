@@ -1,20 +1,26 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VoiceConfig {
+
     #[serde(skip)]
     pub path: PathBuf,
+    
     pub voice: VoiceMeta,
-    pub reactions: VoiceReactions,
+
+    // Multi-language reactions
+    pub reactions: HashMap<String, VoiceReactions>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VoiceMeta {
     pub id: String,
     pub name: String,
+
     #[serde(default)]
     pub author: String,
+
     pub languages: Vec<String>,
 }
 
