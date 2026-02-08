@@ -41,7 +41,8 @@ fluent = "0.17.0"
 fluent-bundle = "0.16.0"
 unic-langid = "0.9"
 chrono = "0.4"
-mlua = { version = "0.11.5", features = ["lua54", "vendored", "async", "serde"] }
+mlua = { version = "0.11.5", features = ["lua55", "vendored", "async", "serde"] }
 reqwest = { version = "0.13.1", features = ["blocking", "json"] }
 tempfile = "^3.24"
 winrt-notification = "0.5"
+fastembed = "^5.8.1"

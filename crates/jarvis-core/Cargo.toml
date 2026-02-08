@@ -42,12 +42,14 @@ mlua = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 tempfile.workspace = true
 
+fastembed = { workspace = true, optional = true }
+
 [target.'cfg(windows)'.dependencies]
 winrt-notification = { workspace = true, optional = true }
 
 [features]
 default = ["jarvis_app"]
-jarvis_app = ["vosk", "intent-classifier", "tokio", "nnnoiseless", "tokio-tungstenite", "futures-util", "lua"]
+jarvis_app = ["vosk", "intent-classifier", "fastembed", "tokio", "nnnoiseless", "tokio-tungstenite", "futures-util", "lua"]
 intent = ["intent-classifier", "tokio"]
 lua = ["mlua", "reqwest", "winrt-notification"]
 lua_only = ["lua", "tokio"]

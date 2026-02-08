@@ -11,7 +11,7 @@ pub enum WakeWordEngine {
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum IntentRecognitionEngine {
     IntentClassifier,
-    Rasa,
+    EmbeddingClassifier,
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
