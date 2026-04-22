@@ -50,6 +50,14 @@ impl ConversationHistory {
         self.turns.clear();
     }
 
+    pub fn pop_last_user(&mut self) -> Option<ChatMessage> {
+        if matches!(self.turns.last(), Some(m) if m.role == "user") {
+            self.turns.pop()
+        } else {
+            None
+        }
+    }
+
     fn truncate(&mut self) {
         if self.turns.len() > self.max_turns {
             let drop = self.turns.len() - self.max_turns;
@@ -100,6 +108,21 @@ mod tests {
         assert_eq!(snap.len(), 2);
         assert_eq!(snap[0].role, "system");
         assert_eq!(snap[1].content, "b");
+    }
+
+    #[test]
+    fn pop_last_user_only_pops_a_trailing_user_turn() {
+        let mut h = ConversationHistory::new("sys", 4);
+        h.push_user("u1");
+        h.push_assistant("a1");
+        assert!(h.pop_last_user().is_none());
+        h.push_user("u2");
+        let popped = h.pop_last_user().expect("trailing user turn should pop");
+        assert_eq!(popped.role, "user");
+        assert_eq!(popped.content, "u2");
+        let snap = h.snapshot();
+        assert_eq!(snap.len(), 1 + 2);
+        assert_eq!(snap[2].content, "a1");
     }
 
     #[test]
