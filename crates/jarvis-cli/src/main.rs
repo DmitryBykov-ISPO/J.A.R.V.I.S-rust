@@ -1,6 +1,9 @@
 use std::io::{self, Write};
 
+use jarvis_core::llm::{ChatMessage, LlmClient};
 use jarvis_core::{COMMANDS_LIST, DB, JCommandsList, commands, config, db, intent};
+
+const ASK_MAX_TOKENS: u32 = 512;
 
 fn print_help() {
     println!("
@@ -9,6 +12,7 @@ fn print_help() {
 Commands:
   classify <text>    - Test intent classification
   execute <text>     - Simulate voice input and execute command
+  ask <prompt>       - Send prompt to Groq LLM and print reply
   list               - List all loaded commands
   phrases            - List all training phrases
   hash               - Show commands hash
@@ -92,13 +96,45 @@ async fn execute_text(commands: &[JCommandsList], text: &str) {
     }
 }
 
+fn ask_llm(prompt: &str) -> i32 {
+    let client = match LlmClient::from_env() {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("LLM not configured: {}", e);
+            eprintln!("Set GROQ_TOKEN (and optionally GROQ_BASE_URL, GROQ_MODEL).");
+            return 2;
+        }
+    };
+    let messages = [ChatMessage::user(prompt)];
+    match client.complete(&messages, ASK_MAX_TOKENS) {
+        Ok(reply) => {
+            println!("{}", reply);
+            0
+        }
+        Err(e) => {
+            eprintln!("LLM request failed: {}", e);
+            1
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let argv: Vec<String> = std::env::args().collect();
+    if argv.len() >= 2 && argv[1] == "ask" {
+        if argv.len() < 3 {
+            eprintln!("Usage: jarvis-cli ask <prompt>");
+            std::process::exit(2);
+        }
+        let prompt = argv[2..].join(" ");
+        std::process::exit(ask_llm(&prompt));
+    }
+
     // init logging
     env_logger::Builder::from_env(
         env_logger::Env::default().default_filter_or("info")
     ).init();
-    
+
     println!("Jarvis CLI v{}", config::APP_VERSION.unwrap_or("unknown"));
 
     // init dirs
@@ -187,6 +223,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("  Usage: execute <text>");
                 } else {
                     execute_text(COMMANDS_LIST.get().unwrap(), arg).await;
+                }
+            }
+            "ask" | "a" => {
+                if arg.is_empty() {
+                    println!("  Usage: ask <prompt>");
+                } else {
+                    ask_llm(arg);
                 }
             }
             "reload" => {
