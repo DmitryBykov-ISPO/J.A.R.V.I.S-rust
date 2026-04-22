@@ -1,65 +1,107 @@
-# JARVIS Voice Assistant (this readme is outdated)
+# J.A.R.V.I.S (Rust) — форк Bossiara13
 
-![We are NOT limited by the technology of our time!](poster.jpg)
+Форк Rust-переписки голосового ассистента [Priler/jarvis](https://github.com/Priler/jarvis).
+Текущий репозиторий: <https://github.com/DmitryBykov-ISPO/J.A.R.V.I.S-rust>.
 
-`Jarvis` - is a voice assistant made as an experiment using neural networks for things like **STT/TTS/Wake Word/NLU** etc.
+## Что это
 
-The main project challenges we try to achieve is:
- - 100% offline *(no cloud)*
- - Open source *(full transparency)*
- - No data collection *(we respect your privacy)*
+Голосовой ассистент, написанный на Rust, работающий локально (без облака).
+Текущий стек:
 
-Our backend stack is 🦀 **[Rust](https://www.rust-lang.org/)** with ❤️ **[Tauri](https://tauri.app/)**.<br>
-For the frontend we use ⚡️ **[Vite](https://vitejs.dev/)** + 🛠️ **[Svelte](https://svelte.dev/)**.
+- Vosk — Speech-to-Text (через `vosk-rs`).
+- fastembed + ort — локальные эмбеддинги для intent-классификации (MiniLM L6/L12 ONNX).
+- Picovoice Porcupine / Rustpotter / Vosk — три опциональных движка wake-word.
+- mlua (Lua 5.5, vendored) — скрипты пользовательских команд.
+- Tauri + Vite/Svelte — GUI-оболочка (фронтенд в отдельной папке `frontend/`).
+- nnnoiseless — подавление шума.
+- fluent / unic-langid — i18n (`ru`, `ua`, `en`).
 
-*Other libraries, tools and packages can be found in source code.*
+**LLM-интеграции в коде пока нет.** В апстримном README у Priler значится `ChatGPT (coming soon)`, но в исходниках этого нет. В данном форке тоже не добавлялось.
 
-## Neural Networks
+## Это форк
 
-This are the neural networks we are currently using:
+Оригинальный автор — Abraham Tugalov (Priler).
+Апстрим: <https://github.com/Priler/jarvis>.
+Лицензия сохранена: **CC BY-NC-SA 4.0** (см. `LICENSE.txt`).
+Атрибуция в `Cargo.toml` и `voice.toml` пакетов озвучки не изменена.
 
- - Speech-To-Text
-	 - [Vosk Speech Recognition Toolkit](https://github.com/alphacep/vosk-api) via [Vosk-rs](https://github.com/Bear-03/vosk-rs)
- - Text-To-Speech
-	 - [~~Silero TTS~~](https://github.com/snakers4/silero-models) *(currently not used)*
-	 - [~~Coqui TTS~~](https://github.com/coqui-ai/TTS) *(currently not used)*
-	 - [~~WinRT~~](https://github.com/ndarilek/tts-rs) *(currently not used)*
-	 - [~gTTS~](https://github.com/nightlyistaken/tts_rust) *(currently not used)*
-	 - [~~SAM~~](https://github.com/s-macke/SAM) *(currently not used)*
- - Wake Word
-	 - [Rustpotter](https://github.com/GiviMAD/rustpotter) *(Partially implemented, still WIP)*
-	 - [Picovoice Porcupine](https://github.com/Picovoice/porcupine) via [official SDK](https://github.com/Picovoice/porcupine#rust) *(requires API key)*
-	 - [Vosk Speech Recognition Toolkit](https://github.com/alphacep/vosk-api) via [Vosk-rs](https://github.com/Bear-03/vosk-rs) *(very slow)*
-	 - [~~Snowboy~~](https://github.com/Kitt-AI/snowboy) *(currently not used)*
- - NLU
-	 - Nothing yet.
-- Chat
-	- [~~ChatGPT~~](https://chat.openai.com/) (coming soon)
+## Что отличается от апстрима
 
-## Supported Languages
+- Обновлён список авторов в `Cargo.toml` (добавлен `Bossiara13 (fork)`, оригинал сохранён).
+- README переписан и отражает фактическую архитектуру (апстримный README называет проект "Tauri+Svelte", что давно не соответствует действительности — это workspace из 4-х крейтов).
+- Отсутствующие в апстриме ONNX-модели (`all-MiniLM-L6-v2`, `paraphrase-multilingual-MiniLM-L12-v2-onnx-Q`) подтянуты через Git LFS из HuggingFace (Qdrant) и запушены в форк.
 
-Currently, only Russian language is supported.<br>
-But soon, Ukranian and English will be added for the interface, wake-word detection and speech recognition.
+## Структура репозитория
 
-## How to build?
+Cargo workspace из четырёх крейтов:
 
-Nothing special was used to build this project.<br>
-You need only Rust and NodeJS installed on your system.<br>
-Other than that, all you need is to install all the dependencies and then compile the code with `cargo tauri build` command.<br>
-Or run dev with `cargo tauri dev`.
+| Крейт          | Назначение                                                                 |
+|----------------|----------------------------------------------------------------------------|
+| `jarvis-core`  | Библиотека: конфиг, intent, STT, wake-word, аудио, Lua-бэкенд, i18n.       |
+| `jarvis-app`   | Бинарь-«демон»: собирает всё вместе, tray, IPC.                             |
+| `jarvis-gui`   | Tauri-приложение (использует `frontend/dist/client`).                       |
+| `jarvis-cli`   | CLI для отладки: классификация intent, список команд, dump конфига.         |
 
-<br><br>
-*Thought you might need some of the platform specific libraries for [PvRecorder](https://github.com/Picovoice/pvrecorder) and [Vosk](https://github.com/alphacep/vosk-api).*
+Прочее:
 
-## Author
+- `frontend/` — Vite + Svelte UI для `jarvis-gui`. Собирается отдельно.
+- `lib/windows/amd64/` — нативные DLL/LIB для Vosk, Porcupine, PvRecorder.
+- `resources/` — голоса, модели, конфиги по умолчанию. ONNX-модели хранятся в Git LFS.
+- `post_build.py` — постпроцессинг артефактов сборки (Python 3).
 
-Abraham Tugalov
+## Сборка
 
-## Python version?
-Old version of Jarvis was built with Python.<br>
-The last Python version commit can be found [here](https://github.com/Priler/jarvis/tree/943efbfbdb8aeb5889fa5e2dc7348ca4ea0b81df).
+Требования:
 
-## License
+- Rust 1.93+ (собирается на stable MSVC).
+- Node 24+ и npm — для фронтенда.
+- Python 3 — для `post_build.py`.
+- MSVC build tools (Windows, x64).
+- Установленные `libvosk.lib`, `libpv_porcupine.dll`, `libpv_recorder.dll` в `lib/windows/amd64/` (уже в репозитории).
 
-[Attribution-NonCommercial-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-nc-sa/4.0/)<br>
-See LICENSE.txt file for more details.
+Перед сборкой `jarvis-gui` нужно собрать фронтенд:
+
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+Затем workspace:
+
+```bash
+cargo build --workspace
+```
+
+Холодная сборка занимает около 10 минут (ONNX runtime, aws-lc-rs, tauri).
+
+## Статус сборки в этом форке
+
+На моей машине (`cargo build --workspace`, stable MSVC) итог:
+
+- `jarvis-core` — собрался (1 warning, unused import).
+- `jarvis-app` — собрался, бинарник `target/debug/jarvis-app.exe` создан.
+- `jarvis-cli` — **падает на линковке**: `LNK1181: cannot open input file "libvosk.lib"`.
+  Причина: у `jarvis-cli` нет своего `build.rs`, а `.cargo/config.toml` с `rustc-link-search` лежит только внутри `crates/jarvis-app/` и не подтягивается для `jarvis-cli`. Лечится либо добавлением такого же `build.rs` в `crates/jarvis-cli/`, либо вынесением `config.toml` в корень. Сознательно не трогал — фикс выходит за рамки рефакторинга (v0.0.1-import фиксирует поведение апстрима как есть).
+- `jarvis-gui` — падает в `tauri::generate_context!()`: `frontendDist = "../../frontend/dist/client"` не существует. Это ожидаемо, если не запустить `npm run build` в `frontend/` заранее (см. секцию «Сборка»).
+
+Запуск уже собранного:
+
+```bash
+./target/debug/jarvis-app.exe
+```
+
+Для CLI (`jarvis-cli --help`, команды `classify`, `execute`, `list`, `phrases`) нужно сначала починить линковку Vosk (см. выше).
+
+## Лицензия
+
+Creative Commons **Attribution-NonCommercial-ShareAlike 4.0 International** (CC BY-NC-SA 4.0).
+Полный текст — в `LICENSE.txt`. Атрибуция оригинального автора (Abraham Tugalov) сохранена.
+
+В `Cargo.toml` декларирован `license = "GPL-3.0-only"` — это несоответствие унаследовано от апстрима и не правилось, чтобы не расходиться с upstream-конфигом. Приоритет имеет `LICENSE.txt`.
+
+## Python-версия
+
+Старая версия ассистента была на Python.
+Последний коммит с Python-кодом в апстриме — [943efbf](https://github.com/Priler/jarvis/tree/943efbfbdb8aeb5889fa5e2dc7348ca4ea0b81df).
