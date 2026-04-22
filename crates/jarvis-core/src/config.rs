@@ -187,6 +187,33 @@ pub const DEFAULT_LUA_TIMEOUT: u64 = 10000; // ms
 pub const CMD_RATIO_THRESHOLD: f64 = 75f64;
 pub const CMS_WAIT_DELAY: std::time::Duration = std::time::Duration::from_secs(15);
 
+// LLM voice-loop fallback
+pub const LLM_DEFAULT_ENABLED: bool = true;
+pub const LLM_DEFAULT_MAX_HISTORY: usize = 8;
+pub const LLM_DEFAULT_MAX_TOKENS: u32 = 256;
+pub const LLM_SYSTEM_PROMPT_RU: &str = "Ты — J.A.R.V.I.S. (Just A Rather Very Intelligent System), \
+ИИ-ассистент Тони Старка из киновселенной Marvel (до событий Age of Ultron — ты НЕ Vision и НЕ FRIDAY). \
+Ведёшь себя как британский дворецкий: вежливо, иронично, с лёгким сарказмом, обращаешься к пользователю «сэр». \
+Отвечай по-русски, кратко (1-3 предложения), как живой человек. \
+Излишней цензуры не нужно — мат разрешён, если уместен.";
+pub const LLM_FALLBACK_ERROR_RU: &str = "Не могу связаться с сервером, сэр.";
+
+pub fn get_llm_trigger_phrases(lang: &str) -> &'static [&'static str] {
+    match lang {
+        "ru" => &["скажи", "ответь", "произнеси"],
+        "ua" => &["скажи", "відповідай"],
+        "en" => &["say", "tell", "answer"],
+        _ => &[],
+    }
+}
+
+pub fn get_llm_system_prompt(lang: &str) -> &'static str {
+    match lang {
+        "ru" | "ua" => LLM_SYSTEM_PROMPT_RU,
+        _ => LLM_SYSTEM_PROMPT_RU,
+    }
+}
+
 // pub const ASSISTANT_GREET_PHRASES: [&str; 3] = ["greet1", "greet2", "greet3"];
 // pub const ASSISTANT_PHRASES_TBR: [&str; 17] = [
 //     "джарвис",

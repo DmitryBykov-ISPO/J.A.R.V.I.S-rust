@@ -18,6 +18,7 @@ mod log;
 
 // include app
 mod app;
+mod llm_fallback;
 
 // include tray
 // @TODO. macOS currently not supported for tray functionality.
@@ -54,6 +55,9 @@ fn main() -> Result<(), String> {
 
     // init i18n
     i18n::init(&settings.lock().language);
+
+    // init LLM fallback (no-op if GROQ_TOKEN missing)
+    llm_fallback::init();
 
     // init recorder
     if recorder::init().is_err() {
