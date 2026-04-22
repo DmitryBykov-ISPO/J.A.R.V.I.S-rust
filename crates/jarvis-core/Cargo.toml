@@ -41,6 +41,7 @@ tokio = { version = "1", features = ["sync"], optional = true }
 
 mlua = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
 tempfile.workspace = true
 
 fastembed = { workspace = true, optional = true }
@@ -56,9 +57,10 @@ winrt-notification = { workspace = true, optional = true }
 default = ["jarvis_app"]
 jarvis_app = [
     "vosk", "intent-classifier", "fastembed", "tokio", "nnnoiseless", "tokio-tungstenite", "futures-util",
-    "lua",
+    "lua", "llm",
     "ort", "ndarray", "tokenizers", "regex",]
 
 intent = ["intent-classifier", "tokio"]
 lua = ["mlua", "reqwest", "winrt-notification"]
 lua_only = ["lua", "tokio"]
+llm = ["reqwest", "thiserror"]
