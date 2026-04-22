@@ -3324,6 +3324,7 @@ dependencies = [
  "sha2",
  "sys-locale",
  "tempfile",
+ "thiserror 2.0.17",
  "tokenizers",
  "tokio",
  "tokio-tungstenite",

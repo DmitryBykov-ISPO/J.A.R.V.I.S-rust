@@ -48,6 +48,9 @@ pub mod audio_buffer;
 #[cfg(feature = "lua")]
 pub mod lua;
 
+#[cfg(feature = "llm")]
+pub mod llm;
+
 // shared statics
 // pub static APP_DIR: Lazy<PathBuf> = Lazy::new(|| std::env::current_dir().unwrap());
 pub static APP_DIR: Lazy<PathBuf> = Lazy::new(|| {
