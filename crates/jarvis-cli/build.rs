@@ -4,6 +4,4 @@ fn main() {
         .join("..\\..\\lib\\windows\\amd64");
 
     println!("cargo:rustc-link-search=native={}", lib_path.display());
-
-    tauri_build::build()
 }

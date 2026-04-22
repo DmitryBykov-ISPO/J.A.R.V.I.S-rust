@@ -53,3 +53,6 @@ tree.txt
 
 # Ignore AI models
 /resources/models/*
+
+# Tauri-generated platform schemas (regenerated on every build)
+crates/jarvis-gui/gen/schemas/*-schema.json
