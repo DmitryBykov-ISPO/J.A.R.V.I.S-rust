@@ -12,6 +12,9 @@ pub enum IpcEvent {
     
     // Speech recognized
     SpeechRecognized { text: String },
+
+    // LLM produced a reply for a free-form question
+    LlmReply { text: String },
     
     // Command was executed
     CommandExecuted { id: String, success: bool },

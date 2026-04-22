@@ -250,7 +250,20 @@ fn recognize_command(
                     }
 
                     first_recognition = false;
-                    
+
+                    if crate::llm_fallback::is_enabled() {
+                        if let Some(prompt) = crate::llm_fallback::extract_prompt(&recognized_voice) {
+                            crate::llm_fallback::handle(&prompt);
+                            stt::reset_speech_recognizer();
+                            vad_state = VadState::WaitingForVoice;
+                            silence_frames = 0;
+                            start = SystemTime::now();
+                            audio_buffer.clear();
+                            ipc::send(IpcEvent::Listening);
+                            continue;
+                        }
+                    }
+
                     // filter activation phrases
                     // for tbr in config::ASSISTANT_PHRASES_TBR {
                     //     recognized_voice = recognized_voice.replace(tbr, "");
@@ -317,9 +330,17 @@ fn recognize_command(
 
 fn process_text_command(text: &str, rt: &tokio::runtime::Runtime) {
     info!("Processing text command: {}", text);
-    
+
     ipc::send(IpcEvent::SpeechRecognized { text: text.to_string() });
-    
+
+    if crate::llm_fallback::is_enabled() {
+        if let Some(prompt) = crate::llm_fallback::extract_prompt(text) {
+            crate::llm_fallback::handle(&prompt);
+            ipc::send(IpcEvent::Idle);
+            return;
+        }
+    }
+
     let mut filtered = text.to_lowercase();
     // for tbr in config::ASSISTANT_PHRASES_TBR {
     //     filtered = filtered.replace(tbr, "");
