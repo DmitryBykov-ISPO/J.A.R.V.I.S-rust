@@ -97,6 +97,16 @@ pub fn reset_speech_recognizer() {
     }
 }
 
+pub fn finalize_speech() -> Option<String> {
+    let mut recognizer = SPEECH_RECOGNIZER.get()?.lock();
+    let result = recognizer.final_result()
+        .multiple()
+        .and_then(|m| m.alternatives.first().map(|a| a.text.to_string()))
+        .filter(|s| !s.trim().is_empty());
+    recognizer.reset();
+    result
+}
+
 pub fn reset_wake_recognizer() {
     if let Some(recognizer) = WAKE_RECOGNIZER.get() {
         recognizer.lock().reset();

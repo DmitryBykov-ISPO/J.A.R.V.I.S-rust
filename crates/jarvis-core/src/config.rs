@@ -171,6 +171,13 @@ pub const VAD_ENERGY_THRESHOLD: f32 = 100.0;  // RMS threshold for energy-based 
 pub const VAD_NNNOISELESS_THRESHOLD: f32 = 0.8;  // probability threshold for nnnoiseless
 pub const VAD_SILENCE_FRAMES: u32 = 15;  // frames of silence before speech end (~480ms)
 
+// post-wake command listening window (паритет с Python v0.2.0, webrtcvad)
+pub const VAD_AGGRESSIVENESS: u8 = 2;
+pub const VAD_COMMAND_END_SILENCE_MS: u32 = 1200;
+pub const VAD_COMMAND_MIN_SPEECH_MS: u32 = 500;
+pub const VAD_COMMAND_MIN_LISTEN_MS: u32 = 1000;
+pub const VAD_COMMAND_MAX_LISTEN_MS: u32 = 15000;
+
 // gain normalizer settings
 pub const GAIN_TARGET_RMS: f32 = 3000.0;  // target RMS level
 pub const GAIN_MIN: f32 = 0.5;  // minimum gain multiplier
