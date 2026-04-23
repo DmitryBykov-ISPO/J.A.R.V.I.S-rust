@@ -1,7 +1,7 @@
 use std::sync::mpsc::Receiver;
 use std::time::SystemTime;
 
-use jarvis_core::{audio_buffer::AudioRingBuffer, audio_processing, commands, config, listener, recorder, stt, COMMANDS_LIST, intent, voices, ipc::{self, IpcEvent}, i18n, slots};
+use jarvis_core::{audio_buffer::AudioRingBuffer, audio_processing, audio_processing::vad::listen_window::{ListenWindow, WindowDecision}, audio_processing::vad::webrtc::WebRtcVad, commands, config, listener, recorder, stt, COMMANDS_LIST, intent, voices, ipc::{self, IpcEvent}, i18n, slots};
 use rand::seq::SliceRandom;
 
 use crate::should_stop;
@@ -159,9 +159,10 @@ fn recognize_command(
     let mut silence_frames: u32 = 0;
     let mut start = SystemTime::now();
     let mut first_recognition = prefed_audio;
-    
-    // longer silence threshold for commands (user might pause to think)
-    // 5 seconds
+
+    let mut webrtc_vad = WebRtcVad::with_aggressiveness(config::VAD_AGGRESSIVENESS);
+    let mut window = ListenWindow::new(jarvis_core::audio_processing::vad::webrtc::FRAME_MS);
+
     let silence_threshold: u32 = ((5.0 * sample_rate as f32) / frame_length as f32) as u32;
     
     loop {
@@ -171,11 +172,40 @@ fn recognize_command(
         
         recorder::read_microphone(frame_buffer);
         let processed = audio_processing::process(frame_buffer);
-        
+
+        let mut vad_finalized: Option<String> = None;
+        let mut vad_hard_cap = false;
+        for is_speech in webrtc_vad.push_samples(frame_buffer) {
+            match window.push(is_speech) {
+                WindowDecision::KeepListening => {}
+                WindowDecision::Close => {
+                    if window.had_speech() {
+                        info!(
+                            "VAD: silence after speech ({} ms speech, {} ms silence), finalizing.",
+                            window.speech_ms(), window.silence_ms()
+                        );
+                        vad_finalized = stt::finalize_speech();
+                        if vad_finalized.is_none() {
+                            return;
+                        }
+                        break;
+                    }
+                }
+                WindowDecision::HardCap => {
+                    info!("VAD: hard cap reached ({} ms), returning to wake word mode.", window.elapsed_ms());
+                    vad_hard_cap = true;
+                    break;
+                }
+            }
+        }
+        if vad_hard_cap {
+            return;
+        }
+
         match vad_state {
             VadState::WaitingForVoice => {
                 audio_buffer.push(frame_buffer);
-                
+
                 if processed.is_voice {
                     // flush buffer to STT
                     for buffered_frame in audio_buffer.drain_all() {
@@ -185,7 +215,7 @@ fn recognize_command(
                     silence_frames = 0;
                 } else {
                     silence_frames += 1;
-                    
+
                     if silence_frames > silence_threshold {
                         info!("Long silence detected, returning to wake word mode.");
                         return;
@@ -194,8 +224,9 @@ fn recognize_command(
             }
             
             VadState::VoiceActive => {
-                // feed to STT
-                if let Some(mut recognized_voice) = stt::recognize(frame_buffer, false) {
+                // feed to STT (or use VAD-forced finalization)
+                let recognized = vad_finalized.take().or_else(|| stt::recognize(frame_buffer, false));
+                if let Some(mut recognized_voice) = recognized {
                     info!("Recognized voice: {}", recognized_voice);
                     
                     ipc::send(IpcEvent::SpeechRecognized {
@@ -227,6 +258,8 @@ fn recognize_command(
                                 silence_frames = 0;
                                 start = SystemTime::now();
                                 audio_buffer.clear();
+                                webrtc_vad.reset();
+                                window = ListenWindow::new(jarvis_core::audio_processing::vad::webrtc::FRAME_MS);
                                 continue;
                             }
 
@@ -235,11 +268,13 @@ fn recognize_command(
                             voices::play_reply();
                             stt::reset_speech_recognizer();
                             ipc::send(IpcEvent::Listening);
-                            
+
                             vad_state = VadState::WaitingForVoice;
                             silence_frames = 0;
                             start = SystemTime::now();
                             audio_buffer.clear();
+                            webrtc_vad.reset();
+                            window = ListenWindow::new(jarvis_core::audio_processing::vad::webrtc::FRAME_MS);
                             continue;
                         } else {
                             // wake word + command in one phrase - execute the command part
@@ -259,6 +294,8 @@ fn recognize_command(
                             silence_frames = 0;
                             start = SystemTime::now();
                             audio_buffer.clear();
+                            webrtc_vad.reset();
+                            window = ListenWindow::new(jarvis_core::audio_processing::vad::webrtc::FRAME_MS);
                             ipc::send(IpcEvent::Listening);
                             continue;
                         }
@@ -294,6 +331,8 @@ fn recognize_command(
                         silence_frames = 0;
                         start = SystemTime::now();
                         audio_buffer.clear();
+                        webrtc_vad.reset();
+                        window = ListenWindow::new(jarvis_core::audio_processing::vad::webrtc::FRAME_MS);
                         ipc::send(IpcEvent::Listening);
                         continue;
                     } else {
