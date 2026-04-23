@@ -77,3 +77,59 @@ impl ListenWindow {
 
     pub fn had_speech(&self) -> bool { self.speech_ms > 0 }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn run(verdicts: &[bool]) -> (WindowDecision, usize) {
+        let mut w = ListenWindow::with_params(30, 1200, 500, 1000, 15000);
+        for (i, &v) in verdicts.iter().enumerate() {
+            let d = w.push(v);
+            if d != WindowDecision::KeepListening {
+                return (d, i + 1);
+            }
+        }
+        (WindowDecision::KeepListening, verdicts.len())
+    }
+
+    #[test]
+    fn closes_after_speech_then_silence() {
+        let speech: Vec<bool> = std::iter::repeat(true).take(40).collect();
+        let silence: Vec<bool> = std::iter::repeat(false).take(60).collect();
+        let mut v = speech;
+        v.extend(silence);
+
+        let (decision, frame_idx) = run(&v);
+        assert_eq!(decision, WindowDecision::Close);
+        let elapsed_ms = (frame_idx as u32) * 30;
+        let speech_ms = 40 * 30;
+        assert!(elapsed_ms >= speech_ms + 1200, "closed at {} ms, expected >= {}", elapsed_ms, speech_ms + 1200);
+        assert!(elapsed_ms <= speech_ms + 1200 + 30, "closed too late at {} ms", elapsed_ms);
+    }
+
+    #[test]
+    fn does_not_close_before_min_listen_even_with_long_silence() {
+        let v: Vec<bool> = std::iter::repeat(false).take(100).collect();
+        let mut w = ListenWindow::with_params(30, 1200, 500, 1000, 15000);
+        for &x in v.iter().take(33) {
+            assert_eq!(w.push(x), WindowDecision::KeepListening);
+        }
+        assert!(w.elapsed_ms() <= 1000);
+    }
+
+    #[test]
+    fn hard_cap_fires_at_max_listen() {
+        let v: Vec<bool> = std::iter::repeat(true).take(1000).collect();
+        let (decision, frame_idx) = run(&v);
+        assert_eq!(decision, WindowDecision::HardCap);
+        assert_eq!((frame_idx as u32) * 30, 15000);
+    }
+
+    #[test]
+    fn silence_only_does_not_close_keeps_waiting_until_hard_cap() {
+        let v: Vec<bool> = std::iter::repeat(false).take(600).collect();
+        let (decision, _) = run(&v);
+        assert_eq!(decision, WindowDecision::HardCap);
+    }
+}
