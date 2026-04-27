@@ -28,54 +28,51 @@ mod tray;
 static SHOULD_STOP: AtomicBool = AtomicBool::new(false);
 
 fn main() -> Result<(), String> {
-    // initialize directories
+    eprintln!("[jarvis-app] step: init_dirs");
     config::init_dirs()?;
 
-    // initialize logging
+    eprintln!("[jarvis-app] step: init_logging");
     log::init_logging()?;
 
-    // log some base info
     info!("Starting Jarvis v{} ...", config::APP_VERSION.unwrap());
     info!("Config directory is: {}", APP_CONFIG_DIR.get().unwrap().display());
     info!("Log directory is: {}", APP_LOG_DIR.get().unwrap().display());
 
-    // initialize settings
+    eprintln!("[jarvis-app] step: db::init");
     let settings = db::init();
 
-    // set global DB (for core modules that read settings at init time)
     DB.set(settings.arc().clone())
             .expect("DB already initialized");
 
-    // init voices
+    eprintln!("[jarvis-app] step: voices::init");
     let voice_id = settings.lock().voice.clone();
     let language = settings.lock().language.clone();
     if let Err(e) = voices::init(&voice_id, &language) {
         warn!("Failed to init voices: {}", e);
     }
 
-    // init i18n
+    eprintln!("[jarvis-app] step: i18n::init");
     i18n::init(&settings.lock().language);
 
-    // init LLM fallback (no-op if GROQ_TOKEN missing)
+    eprintln!("[jarvis-app] step: llm_fallback::init");
     llm_fallback::init();
 
-    // init recorder
+    eprintln!("[jarvis-app] step: recorder::init");
     if recorder::init().is_err() {
-        app::close(1);
+        app::close(1, "recorder::init failed");
     }
 
-    // init models registry (scans available AI models)
+    eprintln!("[jarvis-app] step: models::init");
     if let Err(e) = models::init() {
         warn!("Models registry init failed: {}", e);
     }
 
-    // init stt engine
+    eprintln!("[jarvis-app] step: stt::init");
     if stt::init().is_err() {
-        // @TODO. Allow continuing even without STT, if commands is using keywords or smthng?
-        app::close(1); // cannot continue without stt
+        app::close(1, "stt::init failed");
     }
 
-    // init commands
+    eprintln!("[jarvis-app] step: commands::parse_commands");
     info!("Initializing commands.");
     let cmds = match commands::parse_commands() {
         Ok(c) => c,
@@ -87,41 +84,40 @@ fn main() -> Result<(), String> {
     info!("Commands initialized. Count: {}, List: {:?}", cmds.len(), commands::list_paths(&cmds));
     COMMANDS_LIST.set(cmds).unwrap();
 
-    // init audio
+    eprintln!("[jarvis-app] step: audio::init");
     if audio::init().is_err() {
-        // @TODO. Allow continuing even without audio?
-        app::close(1); // cannot continue without audio
+        app::close(1, "audio::init failed");
     }
 
-    // init wake-word engine
+    eprintln!("[jarvis-app] step: listener::init");
     if let Err(e) = listener::init() {
         error!("Wake-word engine init failed: {}", e);
-        app::close(1);
+        app::close(1, "listener::init failed");
     }
 
-    // shared async runtime for intent classification, IPC, etc.
+    eprintln!("[jarvis-app] step: tokio runtime");
     let rt = Arc::new(
         tokio::runtime::Runtime::new().expect("Failed to create tokio runtime")
     );
 
-    // init intent-recognition engine
+    eprintln!("[jarvis-app] step: intent::init");
     rt.block_on(async {
         if let Err(e) = intent::init(COMMANDS_LIST.get().unwrap()).await {
             error!("Failed to initialize intent classifier: {}", e);
-            app::close(1);
+            app::close(1, "intent::init failed");
         }
     });
 
-    // init slots parsing engine
+    eprintln!("[jarvis-app] step: slots::init");
     slots::init().map_err(|e| error!("Slot extraction init failed: {}", e)).ok();
 
-    // init audio processing
+    eprintln!("[jarvis-app] step: audio_processing::init");
     info!("Initializing audio processing...");
     if let Err(e) = audio_processing::init() {
         warn!("Audio processing init failed: {}", e);
     }
 
-    // init IPC
+    eprintln!("[jarvis-app] step: ipc::init");
     info!("Initializing IPC...");
     ipc::init();
 
@@ -161,14 +157,16 @@ fn main() -> Result<(), String> {
         ipc_rt.block_on(ipc::start_server());
     });
     
-    // start the app (in the background thread)
+    eprintln!("[jarvis-app] step: spawn app thread");
     let app_rt = Arc::clone(&rt);
     std::thread::spawn(move || {
         let _ = app::start(text_cmd_rx, &app_rt);
     });
 
+    eprintln!("[jarvis-app] step: tray::init_blocking");
     tray::init_blocking(settings);
 
+    eprintln!("[jarvis-app] step: main returning Ok");
     Ok(())
 }
 

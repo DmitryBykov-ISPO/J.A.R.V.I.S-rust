@@ -470,8 +470,9 @@ fn execute_command(text: &str, rt: &tokio::runtime::Runtime) -> bool {
 }
 
 
-pub fn close(code: i32) {
-    info!("Closing application.");
+pub fn close(code: i32, label: &'static str) {
+    eprintln!("[jarvis-app] app::close called: code={} label={}", code, label);
+    error!("Closing application: code={} label={}", code, label);
     voices::play_goodbye();
     ipc::send(IpcEvent::Stopping);
     std::process::exit(code);
