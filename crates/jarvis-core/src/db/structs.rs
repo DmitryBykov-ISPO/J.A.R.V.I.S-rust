@@ -152,7 +152,7 @@ impl Default for Settings {
     fn default() -> Settings {
         Settings {
             microphone: -1,
-            voice: String::from(""),
+            voice: String::from(config::DEFAULT_VOICE),
 
             wake_word_engine: config::DEFAULT_WAKE_WORD_ENGINE,
 

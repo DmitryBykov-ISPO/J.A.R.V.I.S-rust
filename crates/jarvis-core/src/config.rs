@@ -72,7 +72,7 @@ pub const DEFAULT_INTENT_BACKEND: &str = "intent-classifier";
 pub const DEFAULT_SLOTS_BACKEND: &str = "none";
 pub const DEFAULT_VAD_BACKEND: &str = "energy";
 
-pub const DEFAULT_VOICE: &str = "jarvis-remaster";
+pub const DEFAULT_VOICE: &str = "jarvis-og";
 pub const SOUND_PATH: &str = "resources/sound"; // extended from SOUND_DIR (resources/sound)
 pub const VOICES_PATH: &str = "voices"; // extended from SOUND_PATH (resources/sound)
 
