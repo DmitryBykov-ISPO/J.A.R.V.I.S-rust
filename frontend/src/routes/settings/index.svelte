@@ -272,9 +272,6 @@
                     >
                         <div class="voice-info">
                             <span class="voice-name">{voice.name}</span>
-                            {#if voice.author}
-                                <span class="voice-author">by {voice.author}</span>
-                            {/if}
                         </div>
                         <div class="voice-languages">
                             {#each voice.languages as lang}
