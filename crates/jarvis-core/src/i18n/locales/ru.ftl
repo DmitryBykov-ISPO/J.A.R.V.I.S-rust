@@ -42,10 +42,8 @@ stats-not-selected = Не выбран
 stats-loading = Загрузка...
 
 # FOOTER
-footer-author = Автор проекта
-footer-telegram = Наш телеграм канал
-footer-github = Github репозиторий проекта
-footer-support = Поддержать проект на
+footer-attribution = Автор форка: Bossiara13. Оригинал: Priler/jarvis (CC BY-NC-SA 4.0).
+footer-github = Github репозиторий форка
 
 # SETTINGS
 settings-title = Настройки

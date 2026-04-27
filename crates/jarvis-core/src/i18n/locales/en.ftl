@@ -42,10 +42,8 @@ stats-not-selected = Not selected
 stats-loading = Loading...
 
 # ### FOOTER
-footer-author = Project author
-footer-telegram = Our Telegram channel
-footer-github = Github repository
-footer-support = Support the project on
+footer-attribution = Fork by Bossiara13. Original: Priler/jarvis (CC BY-NC-SA 4.0).
+footer-github = Fork Github repository
 
 # ### SETTINGS
 settings-title = Settings
