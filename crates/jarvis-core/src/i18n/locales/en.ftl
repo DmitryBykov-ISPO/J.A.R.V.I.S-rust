@@ -110,10 +110,9 @@ settings-openai-not-supported = ChatGPT is not currently supported. It will be a
 commands-title = Commands
 commands-search = Search commands...
 commands-count = { $count } commands
-commands-wip-title = [404] This section is under development!
-commands-wip-desc = Here will be a list of commands + full-featured command editor.
-commands-wip-follow = Follow updates in
-commands-wip-channel = our Telegram channel
+commands-heading = Jarvis commands
+commands-desc = Voice commands are configured via commands.yaml (Python fork) or resources/commands/ (Rust). A GUI command builder is available in the Python version of the fork.
+commands-builder-link = Open Command Builder (Python fork)
 
 # ### ERRORS
 error-generic = An error occurred

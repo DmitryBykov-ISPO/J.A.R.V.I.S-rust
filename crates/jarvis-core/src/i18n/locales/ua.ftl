@@ -110,10 +110,9 @@ settings-openai-not-supported = Наразі ChatGPT не підтримуєть
 commands-title = Команди
 commands-search = Пошук команд...
 commands-count = { $count } команд
-commands-wip-title = [404] Цей розділ ще в розробці!
-commands-wip-desc = Тут буде список команд + повноцінний редактор команд.
-commands-wip-follow = Слідкуйте за оновленнями в
-commands-wip-channel = нашому телеграм каналі
+commands-heading = Команди Jarvis
+commands-desc = Голосові команди налаштовуються через файл commands.yaml (Python-форк) або resources/commands/ (Rust). GUI-конструктор команд доступний у Python-версії форка.
+commands-builder-link = Відкрити Command Builder (Python-форк)
 
 # ### ERRORS
 error-generic = Сталася помилка
